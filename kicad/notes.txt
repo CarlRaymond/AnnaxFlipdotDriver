@@ -1,0 +1,30 @@
+Startup sequence:
+
+At startup, all GPIO lines will be in input mode; /COL_ENABLE and /ROW_ENABLE will
+be pulled high, diabling the row and column lines. The low-side lines coming out of
+the shift registers will be inactive, but the high-side lines have pullups going into
+the high side drivers. Both row and column high-side drivers will be active. No current
+will flow in the coils.
+
+The column driver boards have 32 lines coming from the shift registers.
+Since the panels the boards are plugged into come in varying sizes
+(20, 25, and 30 columns at least), and can be daisy-chained together in any
+order, the first task is to determine how many columns there are in all, and
+then determine where the "empty" positions are.
+
+At startup, both the column and row drivers are all in the high-side active state. The
+first step is to turn off all the row drivers (neither high or low side active). Do
+this by shifting out 16 pairs of 0 followed by 1. The 0 turns off the low side drive
+(making it float) and the 1 pulls down the corresponding bit in the shift register,
+which turns off the high side drive. As long as any column driver is high, the column
+presence sense line /SENSE will be active (driven low). We count the total columns by
+shifting bits to turn off columns one by one until /SENSE goes high, indicating no more
+columns are active.
+
+Now we can determine the column positions by turning on the column high side drivers
+one at a time, and checking the /SENSE line. This involves initially shifting in two
+bits (00) to disable the low driver and enable the high driver of the first column, and
+checking the sense line. Then shift out a (0, 1) pair to deactivate the first column
+and activate the next. Repeat for each remaining column, whose number was determined
+above.
+

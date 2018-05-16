@@ -1,0 +1,19 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP BAV23
+D Dual switching diode
+$ENDCMP
+#
+$CMP TBD62783
+D 8 channel source type DMOS transistor array
+$ENDCMP
+#
+$CMP TPIC6B595
+D High-voltage tolerant 8-bit shift register
+$ENDCMP
+#
+$CMP TXB0108-PWR
+D TXB0108 8-Bit Bidirectional Voltage-Level Translator with Auto-Direction Sensing and ±15-kVESD Protection
+$ENDCMP
+#
+#End Doc Library
