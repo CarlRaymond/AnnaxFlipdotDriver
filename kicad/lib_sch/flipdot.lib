@@ -1,6 +1,29 @@
 EESchema-LIBRARY Version 2.3
 #encoding utf-8
 #
+# BAS16GW
+#
+DEF ~BAS16GW D 0 40 N N 1 F N
+F0 "D" -100 -100 40 H V C CNN
+F1 "BAS16GW" 150 0 40 H I C CNN
+F2 "" 50 -50 50 H I C CNN
+F3 "" 50 -50 50 H I C CNN
+$FPLIST
+ TO-???*
+ *SingleDiode
+ *_Diode_*
+ *SingleDiode*
+ D_*
+$ENDFPLIST
+DRAW
+P 2 0 1 8 100 -100 100 0 N
+P 4 0 1 8 0 -100 0 0 100 -50 0 -100 F
+P 2 1 1 0 0 -50 100 -50 N
+X K 1 200 -50 100 L 50 50 1 1 P
+X A 2 -100 -50 100 R 50 50 1 1 P
+ENDDRAW
+ENDDEF
+#
 # BAV23
 #
 DEF ~BAV23 D 0 0 N N 2 F N
