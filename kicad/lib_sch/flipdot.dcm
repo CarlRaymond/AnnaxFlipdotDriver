@@ -14,7 +14,7 @@ D 8 channel source type DMOS transistor array
 $ENDCMP
 #
 $CMP TPIC6B595
-D High-voltage tolerant 8-bit shift register
+D High-voltage tolerant 8-bit shift register open drain
 $ENDCMP
 #
 $CMP TXB0108-PWR

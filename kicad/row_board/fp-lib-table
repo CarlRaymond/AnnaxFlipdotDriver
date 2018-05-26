@@ -1,3 +1,5 @@
 (fp_lib_table
   (lib (name lib_fp)(type KiCad)(uri /Users/carl/Documents/KiCad/AnnaxFlipdotDriver/kicad/lib_fp.pretty)(options "")(descr ""))
+  (lib (name Connector)(type KiCad)(uri "/Library/Application Support/kicad/kicad-footprints-4-backport-5.0.0-rc2/Connector.pretty")(options "")(descr ""))
+  (lib (name Connector_JST)(type KiCad)(uri "/Library/Application Support/kicad/kicad-footprints-4-backport-5.0.0-rc2/Connector_JST.pretty")(options "")(descr ""))
 )

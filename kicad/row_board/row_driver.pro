@@ -1,4 +1,4 @@
-update=Friday, May 18, 2018 'PMt' 07:23:21 PM
+update=Friday, May 25, 2018 'PMt' 05:19:43 PM
 version=1
 last_client=kicad
 [pcbnew]
@@ -25,9 +25,19 @@ version=1
 NetIExt=net
 [general]
 version=1
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
 [eeschema]
 version=1
-LibDir=../lib_sch
+LibDir=../lib_sch;/Library/Application Support/kicad/kicad-symbols-4-backport-5.0.0-rc2
 [eeschema/libraries]
 LibName1=row_driver-rescue
 LibName2=flipdot
@@ -63,13 +73,7 @@ LibName31=valves
 LibName32=/Users/carl/Documents/KiCad/NixieClockDisplay/lib_sch/Nixie
 LibName33=/Library/kicad/library/diode
 LibName34=/Library/kicad/library/wemos_mini
-[schematic_editor]
-version=1
-PageLayoutDescrFile=
-PlotDirectoryName=
-SubpartIdSeparator=0
-SubpartFirstId=65
-NetFmtName=
-SpiceForceRefPrefix=0
-SpiceUseNetNumbers=0
-LabSize=60
+LibName35=Connector_Generic_MountingPin
+LibName36=Connector_Generic_Shielded
+LibName37=Connector_Generic
+LibName38=Connector
