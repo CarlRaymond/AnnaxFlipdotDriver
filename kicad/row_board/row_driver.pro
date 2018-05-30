@@ -1,4 +1,4 @@
-update=Friday, May 25, 2018 'PMt' 05:19:43 PM
+update=Monday, May 28, 2018 'PMt' 10:11:13 PM
 version=1
 last_client=kicad
 [pcbnew]
@@ -77,3 +77,4 @@ LibName35=Connector_Generic_MountingPin
 LibName36=Connector_Generic_Shielded
 LibName37=Connector_Generic
 LibName38=Connector
+LibName39=/Users/carl/Documents/KiCad/NixieClockDisplay/NixieClockDisplay-cache
