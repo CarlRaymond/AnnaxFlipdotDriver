@@ -288,9 +288,9 @@ F 3 "" H -1150 7650 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Text GLabel 6400 2100 0    60   Input ~ 0
-RC_REG_CLK
+ROW_REG_CLK
 Text GLabel 6400 2300 0    60   Input ~ 0
-ROW_SR_CLK
+RC_SHIFT_CLK
 $Comp
 L Conn_02x20_Odd_Even J1
 U 1 1 5AED953B
@@ -575,7 +575,7 @@ ROW10_H
 Text GLabel 10800 3700 2    60   Output ~ 0
 ROW9_H
 Text GLabel 6400 2500 0    60   Input ~ 0
-~RC_CLR
+~RC_CLEAR
 $Comp
 L WE-FDSM_DC/DC_5V U7
 U 1 1 5AEFACA4
@@ -699,16 +699,16 @@ F 3 "" H 7250 8400 50  0001 C CNN
 	1    7250 8400
 	1    0    0    -1  
 $EndComp
-Text GLabel 14450 4000 0    60   Input ~ 0
+Text GLabel 14400 4000 0    60   Input ~ 0
 RC_DATA
-Text GLabel 14950 3900 0    60   Input ~ 0
+Text GLabel 15150 3900 0    60   Input ~ 0
 ~COL_EN
-Text GLabel 15100 4100 0    60   Input ~ 0
-COL_SR_CLK
-Text GLabel 14450 4200 0    60   Input ~ 0
-RC_REG_CLK
-Text GLabel 15100 4300 0    60   Input ~ 0
-~RC_CLR
+Text GLabel 15150 4100 0    60   Input ~ 0
+RC_SHIFT_CLK
+Text GLabel 14400 4200 0    60   Input ~ 0
+COL_REG_CLK
+Text GLabel 15150 4300 0    60   Input ~ 0
+~RC_CLEAR
 $Comp
 L BAV70W D10
 U 2 1 5AF14077
@@ -1203,7 +1203,7 @@ $EndComp
 Text GLabel 13950 5250 0    60   Input ~ 0
 RC_DATA
 Text GLabel 13400 5350 0    60   Input ~ 0
-ROW_SR_CLK
+RC_SHIFT_CLK
 Text GLabel 13400 5750 0    60   Input ~ 0
 RC_REG_CLK
 Text GLabel 13950 5450 0    60   Input ~ 0
@@ -1276,7 +1276,7 @@ COL_SR_CLK_3v3
 Text GLabel 13950 5650 0    60   Input ~ 0
 ~COL_EN
 Text GLabel 13400 5550 0    60   Input ~ 0
-COL_SR_CLK
+COL_REG_CLK
 $Comp
 L GND #PWR044
 U 1 1 5AF8760E
@@ -1314,7 +1314,7 @@ Text GLabel -3850 9000 0    60   Input ~ 0
 Text GLabel -3700 5150 0    60   Output ~ 0
 ~RC_CLR_3v3
 Text GLabel 13950 5850 0    60   Input ~ 0
-~RC_CLR
+~RC_CLEAR
 $Comp
 L R R21
 U 1 1 5AF972DE
@@ -2073,8 +2073,8 @@ L D_Zener D20
 U 1 1 5B0E431E
 P 2500 8950
 F 0 "D20" V 2500 9100 50  0000 C CNN
-F 1 "DDZ10CS-7" V 2600 9250 50  0000 C CNN
-F 2 "Diodes_SMD:D_SOD-323" H 2500 8950 50  0001 C CNN
+F 1 "1N4742" V 2600 9150 50  0000 C CNN
+F 2 "Diodes_THT:Diode_DO-41_SOD81_Horizontal_RM10" H 2500 8950 50  0001 C CNN
 F 3 "" H 2500 8950 50  0001 C CNN
 	1    2500 8950
 	0    1    1    0   
@@ -2127,7 +2127,7 @@ L D D19
 U 1 1 5B0EADCF
 P 1600 9250
 F 0 "D19" V 1600 9400 50  0000 C CNN
-F 1 "1N4001" V 1500 9400 50  0000 C CNN
+F 1 "1N4148" V 1500 9400 50  0000 C CNN
 F 2 "Diodes_THT:Diode_DO-41_SOD81_Horizontal_RM10" H 1600 9250 50  0001 C CNN
 F 3 "" H 1600 9250 50  0001 C CNN
 	1    1600 9250
@@ -2162,8 +2162,8 @@ NoConn ~ 3450 2600
 NoConn ~ 3450 2500
 NoConn ~ 2250 2700
 NoConn ~ 2250 2800
-Text Notes 2600 9200 0    60   ~ 0
-10V Zener
+Text Notes 2550 9200 0    60   ~ 0
+12V Zener
 NoConn ~ -2150 8400
 Wire Wire Line
 	7550 2400 7650 2400
@@ -2877,11 +2877,13 @@ Wire Wire Line
 Wire Wire Line
 	4300 8700 4300 8900
 Wire Wire Line
-	3550 8600 3550 8700
+	3550 8700 3550 8600
 Wire Wire Line
-	3550 8700 3250 8700
+	2300 8700 2500 8700
 Wire Wire Line
-	3250 8700 3250 8700
+	2500 8700 3250 8700
+Wire Wire Line
+	3250 8700 3550 8700
 Wire Wire Line
 	3250 8700 3250 8450
 Wire Wire Line
@@ -2942,9 +2944,9 @@ Wire Wire Line
 Wire Wire Line
 	12600 4200 12950 4200
 Wire Wire Line
-	14450 4000 15300 4000
+	14400 4000 15300 4000
 Wire Wire Line
-	15100 4100 15300 4100
+	15150 4100 15300 4100
 Wire Wire Line
 	9450 1300 9550 1300
 Wire Wire Line
@@ -3380,10 +3382,6 @@ Wire Wire Line
 	-3650 5450 -3650 5400
 Wire Wire Line
 	-3650 5400 -3300 5400
-Wire Wire Line
-	2300 8700 2500 8700
-Wire Wire Line
-	2500 8700 3250 8700
 Connection ~ 3250 8700
 Wire Wire Line
 	1300 9800 1600 9800
@@ -3419,13 +3417,13 @@ Wire Wire Line
 Wire Wire Line
 	13950 6050 15000 6050
 Wire Wire Line
-	14950 3900 15300 3900
+	15150 3900 15300 3900
 Wire Wire Line
 	12600 4400 12950 4400
 Wire Wire Line
-	14450 4200 15300 4200
+	14400 4200 15300 4200
 Wire Wire Line
-	15100 4300 15300 4300
+	15150 4300 15300 4300
 Wire Wire Line
 	-850 9100 -850 8550
 Wire Wire Line
