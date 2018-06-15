@@ -675,15 +675,15 @@ F 3 "" H 7250 8400 50  0001 C CNN
 	1    7250 8400
 	1    0    0    -1  
 $EndComp
-Text GLabel 14350 4100 0    60   Input ~ 0
+Text GLabel 14350 4300 0    60   Input ~ 0
 RC_DATA
 Text GLabel 15100 4000 0    60   Input ~ 0
 ~COL_EN
-Text GLabel 15100 4200 0    60   Input ~ 0
+Text GLabel 14350 4100 0    60   Input ~ 0
 RC_SHIFT_CLK
-Text GLabel 14350 4300 0    60   Input ~ 0
-COL_REG_CLK
 Text GLabel 15100 4400 0    60   Input ~ 0
+COL_REG_CLK
+Text GLabel 15100 4200 0    60   Input ~ 0
 ~RC_CLEAR
 $Comp
 L BAV70W D10
@@ -1641,7 +1641,7 @@ Text Notes 2650 9300 0    60   ~ 0
 12V Zener
 Text GLabel 3700 1400 2    60   Output ~ 0
 RC_SHIFT_CLK
-Text GLabel 4400 2300 2    60   Output ~ 0
+Text GLabel 3700 2000 2    60   Output ~ 0
 ~ROW_EN
 Text GLabel 3700 2200 2    60   Output ~ 0
 ROW_REG_CLK
@@ -1649,7 +1649,7 @@ Text GLabel 3700 1800 2    60   Output ~ 0
 ~RC_CLEAR
 Text GLabel 4400 2100 2    60   Output ~ 0
 ~COL_EN
-Text GLabel 3700 2000 2    60   Output ~ 0
+Text GLabel 4400 2300 2    60   Output ~ 0
 COL_REG_CLK
 NoConn ~ 3600 1700
 NoConn ~ 2100 1500
@@ -1745,7 +1745,7 @@ F 3 "" H 3000 5750 50  0001 C CNN
 $EndComp
 Text GLabel 1850 4500 0    60   Output ~ 0
 SENSE_EN_3v3
-Text GLabel 1850 3900 0    60   Input ~ 0
+Text GLabel 1850 4050 0    60   Input ~ 0
 ~SENSE_3v3
 Text GLabel 1850 4350 0    60   Output ~ 0
 RC_DATA_3v3
@@ -1771,7 +1771,7 @@ F 3 "" H 3550 4700 50  0001 C CNN
 	1    3550 4700
 	1    0    0    -1  
 $EndComp
-Text GLabel 1700 6400 0    60   Input ~ 0
+Text GLabel 1700 6100 0    60   Input ~ 0
 RC_DATA_3v3
 Text GLabel 4050 4300 2    60   Output ~ 0
 ROW_REG_CLK_3v3
@@ -1793,15 +1793,15 @@ NoConn ~ 3350 3950
 NoConn ~ 2250 3850
 Text GLabel 4050 4000 2    60   Output ~ 0
 COL_REG_CLK_3v3
-Text GLabel 1850 4050 0    60   Output ~ 0
+Text GLabel 1850 3900 0    60   Output ~ 0
 RC_SHIFT_CLK_3v3
-Text GLabel 1700 6850 0    60   Input ~ 0
+Text GLabel 1700 6700 0    60   Input ~ 0
 COL_REG_CLK_3v3
 Text GLabel 4050 4150 2    60   Output ~ 0
 ~COL_EN_3v3
-Text GLabel 1700 6250 0    60   Input ~ 0
+Text GLabel 1700 6850 0    60   Input ~ 0
 ~COL_EN_3v3
-Text GLabel 1700 6700 0    60   Input ~ 0
+Text GLabel 1700 7000 0    60   Input ~ 0
 ROW_REG_CLK_3v3
 $Comp
 L TXB0108-PWR U13
@@ -1816,25 +1816,25 @@ F 3 "" H 2850 6500 60  0001 C CNN
 $EndComp
 Text GLabel 4050 4450 2    60   Output ~ 0
 ~ROW_EN_3v3
-Text GLabel 1700 6100 0    60   Input ~ 0
+Text GLabel 1700 7300 0    60   Input ~ 0
 ~ROW_EN_3v3
-Text GLabel 1700 7000 0    60   Input ~ 0
+Text GLabel 1700 6250 0    60   Input ~ 0
 ~RC_CLR_3v3
 Text GLabel 1850 4200 0    60   Output ~ 0
 ~RC_CLR_3v3
 Text Notes 1900 5050 0    60   ~ 0
 3.3V out from\non-board LDO\nregulator
-Text GLabel 4200 6700 2    60   Output ~ 0
+Text GLabel 4200 7000 2    60   Output ~ 0
 ROW_REG_CLK
-Text GLabel 4200 6100 2    60   Output ~ 0
+Text GLabel 3700 7300 2    60   Output ~ 0
 ~ROW_EN
 Text GLabel 4200 6550 2    60   Output ~ 0
 RC_SHIFT_CLK
-Text GLabel 4200 6250 2    60   Output ~ 0
-~COL_EN
 Text GLabel 4200 6850 2    60   Output ~ 0
+~COL_EN
+Text GLabel 4200 6700 2    60   Output ~ 0
 COL_REG_CLK
-Text GLabel 4200 7000 2    60   Output ~ 0
+Text GLabel 4200 6250 2    60   Output ~ 0
 ~RC_CLEAR
 Text Notes 2350 7750 0    60   ~ 12
 3.3V to 5V Level Shifter
@@ -1907,11 +1907,11 @@ F 3 "" H 2400 7300 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 NoConn ~ 2250 3950
-Text GLabel 4200 6400 2    60   Output ~ 0
+Text GLabel 4200 6100 2    60   Output ~ 0
 RC_DATA
-Text GLabel 1700 7300 0    60   Output ~ 0
+Text GLabel 1700 6400 0    60   Output ~ 0
 ~SENSE_3v3
-Text GLabel 3700 7300 2    60   Input ~ 0
+Text GLabel 4200 6400 2    60   Input ~ 0
 ~SENSE
 $Comp
 L ArduinoNanoR3 U11
