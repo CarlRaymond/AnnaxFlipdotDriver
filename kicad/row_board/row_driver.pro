@@ -1,4 +1,4 @@
-update=Monday, May 28, 2018 'PMt' 10:11:13 PM
+update=Friday, June 15, 2018 'PMt' 08:34:55 PM
 version=1
 last_client=kicad
 [pcbnew]
@@ -25,16 +25,6 @@ version=1
 NetIExt=net
 [general]
 version=1
-[schematic_editor]
-version=1
-PageLayoutDescrFile=
-PlotDirectoryName=
-SubpartIdSeparator=0
-SubpartFirstId=65
-NetFmtName=
-SpiceForceRefPrefix=0
-SpiceUseNetNumbers=0
-LabSize=60
 [eeschema]
 version=1
 LibDir=../lib_sch;/Library/Application Support/kicad/kicad-symbols-4-backport-5.0.0-rc2
@@ -78,3 +68,13 @@ LibName36=Connector_Generic_Shielded
 LibName37=Connector_Generic
 LibName38=Connector
 LibName39=/Users/carl/Documents/KiCad/NixieClockDisplay/NixieClockDisplay-cache
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
