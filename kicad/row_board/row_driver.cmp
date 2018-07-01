@@ -1,0 +1,643 @@
+Cmp-Mod V01 Created by PcbNew   date = Saturday, June 30, 2018 'PMt' 09:20:11 PM
+
+BeginCmp
+TimeStamp = 5B021C24
+Path = /5AEFACA4
+Reference = U7;
+ValeurCmp = WE-FDSM_DC/DC_5V;
+IdModule  = lib_fp:WPMDL9500xx;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E0B8
+Path = /5AF40B20
+Reference = R25;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E0B3
+Path = /5AF437C1
+Reference = R24;
+ValeurCmp = 2K2;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E0AE
+Path = /5AF42886
+Reference = R23;
+ValeurCmp = 1K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E090
+Path = /5AEE3A78
+Reference = R16;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E08B
+Path = /5AEE3A72
+Reference = R15;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E086
+Path = /5AEE3A6C
+Reference = R14;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E081
+Path = /5AEE3A66
+Reference = R13;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E07C
+Path = /5AEE3A46
+Reference = R12;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E077
+Path = /5AEE3A40
+Reference = R11;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E072
+Path = /5AEE3A2C
+Reference = R10;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E06D
+Path = /5AEE3A1A
+Reference = R9;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E068
+Path = /5AED30B2
+Reference = R8;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E063
+Path = /5AED2FCF
+Reference = R7;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E05E
+Path = /5AED2F88
+Reference = R6;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E059
+Path = /5AED2F18
+Reference = R5;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E054
+Path = /5AED1C67
+Reference = R4;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E04F
+Path = /5AED1C2B
+Reference = R3;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E04A
+Path = /5AED1846
+Reference = R2;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E045
+Path = /5AED1389
+Reference = R1;
+ValeurCmp = 10K;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08DD37
+Path = /5B026B1D
+Reference = D101;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08DFFA
+Path = /5B027689
+Reference = D102;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08DFFF
+Path = /5B0277A8
+Reference = D103;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E004
+Path = /5B0278CB
+Reference = D104;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E009
+Path = /5B02976C
+Reference = D105;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E00E
+Path = /5B029893
+Reference = D106;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E013
+Path = /5B0299B0
+Reference = D107;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E018
+Path = /5B029AD1
+Reference = D108;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E01D
+Path = /5B02A5B3
+Reference = D109;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E022
+Path = /5B02A6DC
+Reference = D110;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E027
+Path = /5B02A7FA
+Reference = D111;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E02C
+Path = /5B02A91D
+Reference = D112;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E031
+Path = /5B02B401
+Reference = D113;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E036
+Path = /5B02B52C
+Reference = D114;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E03B
+Path = /5B02B64A
+Reference = D115;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E040
+Path = /5B02B76B
+Reference = D116;
+ValeurCmp = BAS16GW;
+IdModule  = lib_fp:D_SOD-123;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E8E2
+Path = /5AF01209
+Reference = C1;
+ValeurCmp = .1uF;
+IdModule  = lib_fp:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E8E7
+Path = /5AF01F58
+Reference = C2;
+ValeurCmp = .1uF;
+IdModule  = lib_fp:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E8EC
+Path = /5AF032D6
+Reference = C3;
+ValeurCmp = .1uF;
+IdModule  = lib_fp:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08E8F1
+Path = /5AF03F9C
+Reference = C4;
+ValeurCmp = .1uF;
+IdModule  = lib_fp:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B145973
+Path = /5B0E447A
+Reference = R30;
+ValeurCmp = 2K7;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B145979
+Path = /5B0E33DF
+Reference = R31;
+ValeurCmp = 470;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B189AFE
+Path = /5B189D7D
+Reference = C5;
+ValeurCmp = .1uF;
+IdModule  = lib_fp:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B189B0E
+Path = /5B189D84
+Reference = C6;
+ValeurCmp = .1uF;
+IdModule  = lib_fp:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B189B8E
+Path = /5B19F3CF
+Reference = R28;
+ValeurCmp = 470;
+IdModule  = lib_fp:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B1DB76D
+Path = /5B1D9BDF
+Reference = U11;
+ValeurCmp = ArduinoNanoR3;
+IdModule  = lib_fp:Arduino_Nano_R3;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B1DC74A
+Path = /5B189D0C
+Reference = U12;
+ValeurCmp = WeMos_mini;
+IdModule  = lib_fp:D1_mini_can_up;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08798F
+Path = /5B0623E9
+Reference = J4;
+ValeurCmp = Column Board Connector;
+IdModule  = lib_fp:IDC_Header_Straight_10pins;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B087964
+Path = /5AF8BF09
+Reference = J2;
+ValeurCmp = Row daisy chain connector (male);
+IdModule  = lib_fp:IDC_Header_Straight_40pins;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B174CA3
+Path = /5AED953B
+Reference = J1;
+ValeurCmp = Panel row connector (female);
+IdModule  = lib_fp:Socket_Strip_Straight_2x20_Pitch2.54mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B021C39
+Path = /5AF3F17C
+Reference = U8;
+ValeurCmp = 4N25;
+IdModule  = lib_fp:DIP-6_W7.62mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B021B83
+Path = /5AF3F8AD
+Reference = R22;
+ValeurCmp = 2K7;
+IdModule  = lib_fp:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B14596D
+Path = /5B0E69D7
+Reference = R29;
+ValeurCmp = 2K7;
+IdModule  = lib_fp:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B15DA5F
+Path = /5B0EADCF
+Reference = D19;
+ValeurCmp = 1N4148;
+IdModule  = lib_fp:D_DO-35_SOD27_P7.62mm_Horizontal;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B15DA5A
+Path = /5AF3FFB8
+Reference = D17;
+ValeurCmp = 1N4148;
+IdModule  = lib_fp:D_DO-35_SOD27_P7.62mm_Horizontal;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B021A0F
+Path = /5AF422FD
+Reference = Q1;
+ValeurCmp = 2N3904;
+IdModule  = lib_fp:TO-92_Molded_Narrow;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08ECA6
+Path = /5AF1933E
+Reference = D16;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08ECA0
+Path = /5AF1934A
+Reference = D15;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08EC9A
+Path = /5AF17B36
+Reference = D14;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08EC94
+Path = /5AF17B42
+Reference = D13;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08EC8E
+Path = /5AF15D81
+Reference = D12;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08EC88
+Path = /5AF15D8D
+Reference = D11;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08EC82
+Path = /5AF14077
+Reference = D10;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08EC7C
+Path = /5AF14344
+Reference = D9;
+ValeurCmp = BAV70W;
+IdModule  = lib_fp:SOT-323_SC-70;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B1DE33B
+Path = /5B1E2A90
+Reference = J8;
+ValeurCmp = Controller B;
+IdModule  = lib_fp:IDC_Header_Straight_10pins;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B1DE321
+Path = /5B1E2960
+Reference = J7;
+ValeurCmp = Controller A;
+IdModule  = lib_fp:IDC_Header_Straight_10pins;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B145960
+Path = /5B0E30B1
+Reference = D21;
+ValeurCmp = LED;
+IdModule  = lib_fp:LED-3MM;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B0218DF
+Path = /5B0E6871
+Reference = D18;
+ValeurCmp = LED;
+IdModule  = lib_fp:LED-3MM;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B189C17
+Path = /5B189D4C
+Reference = U13;
+ValeurCmp = TXB0108-PWR;
+IdModule  = lib_fp:SSOP-20_4.4x6.5mm_Pitch0.65mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B021A01
+Path = /5AF54AAE
+Reference = J6;
+ValeurCmp = Barrel_Jack;
+IdModule  = lib_fp:BARREL_JACK;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B14AB9B
+Path = /5B14F271
+Reference = JP1;
+ValeurCmp = Jumper;
+IdModule  = lib_fp:Pin_Header_Straight_1x02_Pitch2.54mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B08B6E6
+Path = /5B0962C4
+Reference = J3;
+ValeurCmp = Conn_01x04;
+IdModule  = lib_fp:JST_VH_B4PS-VH_1x04_P3.96mm_Horizontal;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B1DB766
+Path = /5B0E059E
+Reference = Q2;
+ValeurCmp = FQP47P06;
+IdModule  = lib_fp:TO-220_Horizontal;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B15DCFE
+Path = /5B0E431E
+Reference = D20;
+ValeurCmp = 1N4742;
+IdModule  = lib_fp:D_DO-41_SOD81_P7.62mm_Horizontal;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B0CBECE
+Path = /5AED0226
+Reference = U3;
+ValeurCmp = TBD62783;
+IdModule  = lib_fp:SOIC-18W_7.5x11.6mm_Pitch1.27mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B0CBF11
+Path = /5AEE39F8
+Reference = U6;
+ValeurCmp = TBD62783;
+IdModule  = lib_fp:SOIC-18W_7.5x11.6mm_Pitch1.27mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B0CBEA0
+Path = /5AFE355B
+Reference = U1;
+ValeurCmp = TPIC6B595;
+IdModule  = lib_fp:SOIC-20W_7.5x12.8mm_Pitch1.27mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B0CBEB7
+Path = /5AFE3CEB
+Reference = U2;
+ValeurCmp = TPIC6B595;
+IdModule  = lib_fp:SOIC-20W_7.5x12.8mm_Pitch1.27mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B0CBEE3
+Path = /5AFE54B3
+Reference = U4;
+ValeurCmp = TPIC6B595;
+IdModule  = lib_fp:SOIC-20W_7.5x12.8mm_Pitch1.27mm;
+EndCmp
+
+BeginCmp
+TimeStamp = 5B0CBEFA
+Path = /5AFE5A90
+Reference = U5;
+ValeurCmp = TPIC6B595;
+IdModule  = lib_fp:SOIC-20W_7.5x12.8mm_Pitch1.27mm;
+EndCmp
+
+EndListe
