@@ -1,5 +1,4 @@
 EESchema Schematic File Version 2
-LIBS:row_driver-rescue
 LIBS:flipdot
 LIBS:power
 LIBS:device
