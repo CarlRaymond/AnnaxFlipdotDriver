@@ -24,6 +24,13 @@ SPISettings SPImode = SPISettings(1000000, LSBFIRST, SPI_MODE0);
 #define CTRL_B3 19
 //#define CTRL_B4
 
+// Panel parameters. Updated by senseColumns.
+byte panelCount = 1;
+
+// Max panels
+byte gapPos[10];
+
+
 //
 // Bit pairs for various outputs:
 //
@@ -395,8 +402,8 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
   byte colvec[16];
 
   // Skip the gap
-  if (col > 24)
-    col += 7;
+  //if (col > 29)
+  //  col += 2;
 
   for (int i=0; i<4; i++) {
     rowvec[i] = 0b10101010;
@@ -425,7 +432,7 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
 
   digitalWrite(COL_REG_CLK, LOW);
 	SPI.beginTransaction(SPImode);
-  for (byte n=0;  n<16;  n++) {
+  for (byte n=0;  n<8;  n++) {
     SPI.transfer(colvec[n]);
   }
 	SPI.endTransaction();
@@ -439,12 +446,12 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
 	SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK, HIGH);
 
-  delayMicroseconds(125);
+  delayMicroseconds(200);
 
   allColsOff();
   allRowsOff();
 
-  delay(2);
+  //delayMicroseconds(2000);
 }
 
 void setup() {
@@ -496,14 +503,12 @@ void setup() {
   allRowsOff();
   allColsOff();
 
-  delay(700);
-
   senseColumns();
 }
 
 void loop() {
 
-  const byte colCount = 55;
+  const byte colCount = 30;
 
   byte row;
   byte col;
@@ -547,7 +552,7 @@ void loop() {
 
   delay(500);
 
-    for (col=0;  col<colCount;  col++) {
+  for (col=0;  col<colCount;  col++) {
     for (row=0;  row<16;  row++) {
       setPixel(15-row, colCount-1-col, true);
     }
@@ -574,7 +579,6 @@ void loop() {
       //delay(5);
     }
   }
-
   delay(500);
 
   for (col=0;  col<colCount;  col++) {
