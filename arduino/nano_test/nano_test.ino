@@ -22,13 +22,50 @@
 #define CTRL_B3 19
 //#define CTRL_B4
 
-// Panel parameters. Updated by senseColumns.
-byte panelCount = 1;
-
-// Max panels
-byte gapPos[10];
-
 SPISettings SPImode = SPISettings(1000000, LSBFIRST, SPI_MODE0);
+
+// Panel parameters. Updated by senseColumns.
+byte panelCount = 0;
+
+// Number of addressable (real) columns
+byte colCount;
+
+// Dynamically sized in setup
+byte *colVec = 0;
+
+// Gaps and adjustments
+byte gapStart[4] = { 0, 0, 0, 0 };
+byte gapLength[4] = { 0, 0, 0, 0 };
+byte gapCount = 0;
+
+
+// Write 0b10 pairs (off) into colVec
+void colVecOff() {
+  for (byte c=0;  c<(panelCount*8);  c++) {
+    colVec[c] = 0b10101010;
+  }
+}
+
+void shiftColVec() {
+  digitalWrite(COL_REG_CLK, LOW);
+  SPI.beginTransaction(SPImode);
+  for (byte i=0;  i<(panelCount * 8);  i++) {
+    SPI.transfer(colVec[i]);
+  }
+  SPI.endTransaction();
+ 	digitalWrite(COL_REG_CLK, HIGH);
+}
+
+
+
+byte gapAdjust(byte col) {
+  for (byte g=0;  g<gapCount;  g++) {
+    if (col >= gapStart[g])
+      col += gapLength[g];
+  }
+
+  return col;
+}
 
 //
 // Bit pairs for various outputs:
@@ -72,13 +109,8 @@ void allRowsLow() {
 }
 
 void allColsOff() {
-  digitalWrite(COL_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  for (byte i=0;  i<(panelCount * 8);  i++) {
-    SPI.transfer(0b10101010);
-  }
-  SPI.endTransaction();
- 	digitalWrite(COL_REG_CLK, HIGH);
+  colVecOff();
+  shiftColVec();
 }
 
 void allColsLow() {
@@ -102,88 +134,62 @@ void allColsHigh() {
 }
 
 
-void flipColumnOn(int col) {
-  byte colvec[8];
+void flipColumnOn(byte col) {
   
-  for (int i=0; i<(panelCount * 8); i++) {
-    colvec[i] = 0b10101010;
-  }
+  colVecOff();
+
+  col = gapAdjust(col);
+
   int pos = col / 4;
   int shift = col % 4;
   byte bits = (0b00000011 << (shift << 1));
-  colvec[pos] = colvec[pos] | bits ;
+  colVec[pos] = colVec[pos] | bits ;
 
   // Selected column low
-  digitalWrite(COL_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  for (int i=0;  i<(panelCount * 8);  i++) {
-    SPI.transfer(colvec[i]);
-  }
-  SPI.endTransaction();
-	digitalWrite(COL_REG_CLK, HIGH);
+  shiftColVec();
 
   // Rows high, in banks
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(0b00000000);
-  SPI.transfer(0b10101010);
-  SPI.transfer(0b00000000);
-  SPI.transfer(0b10101010);
+  SPI.transfer(0b00100010);
+  SPI.transfer(0b00100010);
+  SPI.transfer(0b00100010);
+  SPI.transfer(0b00100010);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(125);
 
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(0b10101010);
-  SPI.transfer(0b00000000);
-  SPI.transfer(0b10101010);
-  SPI.transfer(0b00000000);
+  SPI.transfer(0b10001000);
+  SPI.transfer(0b10001000);
+  SPI.transfer(0b10001000);
+  SPI.transfer(0b10001000);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(125);
-
-  // digitalWrite(ROW_REG_CLK, LOW);
-  // SPI.beginTransaction(SPImode);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b00000000);
-  // SPI.transfer(0b10101010);
-  // SPI.endTransaction();
-  // digitalWrite(ROW_REG_CLK, HIGH);
-  // delayMicroseconds(125);
-
-  // digitalWrite(ROW_REG_CLK, LOW);
-  // SPI.beginTransaction(SPImode);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b00000000);
-  // SPI.endTransaction();
-  // digitalWrite(ROW_REG_CLK, HIGH);
-  // delayMicroseconds(125);
 
   allRowsOff();
   allColsOff();
 }
 
 
-void flipColumnOff(int col) {
-  byte colvec[8];
+void flipColumnOff(byte col) {
   
-  for (int i=0; i<(panelCount * 8); i++) {
-    colvec[i] = 0b10101010;
-  }
+  colVecOff();
+
+  col = gapAdjust(col);
+
   int pos = col / 4;
   int shift = col % 4;
   byte bits = ~(0b00000011 << (shift << 1));
-  colvec[pos] = colvec[pos] & bits ;
+  colVec[pos] = colVec[pos] & bits ;
 
   // Selected column high
   digitalWrite(COL_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
   for (int i=0;  i<(panelCount * 8);  i++) {
-    SPI.transfer(colvec[i]);
+    SPI.transfer(colVec[i]);
   }
   SPI.endTransaction();
 	digitalWrite(COL_REG_CLK, HIGH);
@@ -191,43 +197,23 @@ void flipColumnOff(int col) {
   // Rows low, in banks
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(0b11111111);
-  SPI.transfer(0b10101010);
-  SPI.transfer(0b11111111);
-  SPI.transfer(0b10101010);
+  SPI.transfer(0b11101110);
+  SPI.transfer(0b11101110);
+  SPI.transfer(0b11101110);
+  SPI.transfer(0b11101110);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(125);
 
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(0b10101010);
-  SPI.transfer(0b11111111);
-  SPI.transfer(0b10101010);
-  SPI.transfer(0b11111111);
+  SPI.transfer(0b10111011);
+  SPI.transfer(0b10111011);
+  SPI.transfer(0b10111011);
+  SPI.transfer(0b10111011);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(125);
-
-  // digitalWrite(ROW_REG_CLK, LOW);
-  // SPI.beginTransaction(SPImode);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b11111111);
-  // SPI.transfer(0b10101010);
-  // SPI.endTransaction();
-  // digitalWrite(ROW_REG_CLK, HIGH);
-  // delayMicroseconds(125);
-
-  // digitalWrite(ROW_REG_CLK, LOW);
-  // SPI.beginTransaction(SPImode);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b10101010);
-  // SPI.transfer(0b11111111);
-  // SPI.endTransaction();
-  // digitalWrite(ROW_REG_CLK, HIGH);
-  // delayMicroseconds(125);
 
   allRowsOff();
   allColsOff();
@@ -274,9 +260,9 @@ void shiftColHigh() {
 
 void senseColumns() {
 
-  Serial.println("Sensing columns");
+  // No SPI allowed here
 
-  SPI.end();
+  Serial.println("Sensing columns");
 
   // Keep row drive off
   digitalWrite(ROW_REG_CLK, LOW);
@@ -307,27 +293,56 @@ void senseColumns() {
   const int maxColumns = 255;
 
   // Find potential columns. While column sensed, shift two bits turning column off.
-  int colCount = 0;
-  while(colCount < maxColumns && digitalRead(SENSE) == LOW) {
-    colCount++;
+  byte vColCount = 0;
+  while(vColCount < maxColumns && digitalRead(SENSE) == LOW) {
+    vColCount++;
     shiftColOff();
     delayMicroseconds(250);
   }
 
-  Serial.print("Possible columns: ");
-  Serial.println(colCount);
+  Serial.print("vColCount: ");
+  Serial.println(vColCount);
 
-  // Find all enabled columns.
+  // Column iteration is in reverse order; we'll find gaps backwards, and adjust.
+  byte revGapStart[4];
+  byte revGapLength[4];
+
+  // Gap start position and length
+  byte start = 0;
+  byte len = 0;
+  byte count = 0;
+
+  // Find all actual columns, and record gap positions.
+  colCount = 0;
   shiftColHigh();
-  for (int col=colCount;  col>0;  col--) {
+
+  for (int col=vColCount;  col>0;  col--) {
     Serial.print("Col. ");
     Serial.print(col);
 
     if (digitalRead(SENSE) == LOW) {
       Serial.println(": found");
+      colCount++;
+
+      if (len > 0) {
+        // Just walked past a gap.
+        revGapStart[count] = start;
+        revGapLength[count] = len;
+        count++;
+        len = 0;
+      }
     }
     else {
       Serial.println(": NOT found");
+      if (len == 0) {
+        // New gap
+        start = col;
+        len = 1;
+      }
+      else {
+        // Continue existing gap
+        len++;
+      }
     }
 
     // Shift two bits to turn this column off, and the next on. 
@@ -335,12 +350,24 @@ void senseColumns() {
     delayMicroseconds(250);
   }
 
-  allColsOff();
-
   // Disable sense
   digitalWrite(SENSE_EN, LOW);
 
-  SPI.begin();
+  // Reverse order and adjust gap positions.
+  for (byte g=0;  g<count-1;  g++) {
+    byte i = count-1-g;
+    gapStart[g] = revGapStart[i] - revGapLength[i];
+    gapLength[g] = revGapLength[i];
+  }
+  gapCount = count-1;
+
+  Serial.print("Actual columns: ");
+  Serial.println(colCount);
+
+  // Allocate colVec
+  colVec = new byte[colCount];
+
+  panelCount = (colCount + 31) / 32;
 }
 
 
@@ -348,11 +375,9 @@ void senseColumns() {
 
 void setPixel(uint8_t row, uint8_t col, bool on) {
   byte rowvec[4];
-  byte colvec[16];
 
-  // Skip the gap
-  //if (col > 29)
-  //  col += 2;
+  // Skip the gaps
+  col = gapAdjust(col);
 
   for (int i=0; i<4; i++) {
     rowvec[i] = 0b10101010;
@@ -361,9 +386,8 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
   byte rowshift = row % 4;
   byte rowbits = (0b00000011 << (rowshift << 1));
 
-  for (int i=0; i<(panelCount * 8); i++) {
-    colvec[i] = 0b10101010;
-  }
+  colVecOff();
+
   byte colpos = col / 4;
   byte colshift = col % 4;
   byte colbits = (0b00000011 << (colshift << 1));
@@ -371,21 +395,15 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
   if (on) {
     // Row high, col low
     rowvec[rowpos] &= ~rowbits ;
-    colvec[colpos] |= colbits;
+    colVec[colpos] |= colbits;
   }
   else {
     // Row low, col high
     rowvec[rowpos] |= rowbits;
-    colvec[colpos] &= ~colbits;
+    colVec[colpos] &= ~colbits;
   }
 
-  digitalWrite(COL_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  for (byte n=0;  n<(panelCount * 8);  n++) {
-    SPI.transfer(colvec[n]);
-  }
-  SPI.endTransaction();
-	digitalWrite(COL_REG_CLK, HIGH);
+  shiftColVec();
 
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
@@ -398,8 +416,15 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
 
   allColsOff();
   allRowsOff();
+}
 
-  //delayMicroseconds(2000);
+void testGapper() {
+  for (byte g=0;  g<gapCount;  g++) {
+    Serial.print("Gap at ");
+    Serial.print(gapStart[g]);
+    Serial.print(" length ");
+    Serial.println(gapLength[g]);
+  }
 }
 
 void setup() {
@@ -443,21 +468,19 @@ void setup() {
   digitalWrite(COL_REG_CLK, HIGH);
 
   Serial.begin(115200);
-  Serial.println();
-  Serial.println();
+  Serial.println("Whazzup!");
+  Serial.println("I mean whazzup!");
 
   SPI.begin();
-
   allRowsOff();
-  allColsOff();
-
+  SPI.end();
   senseColumns();
+  SPI.begin();
 
+  testGapper();
 }
 
 void loop() {
-
-  const byte colCount = 30;
 
   int8_t row;
   int8_t col;
@@ -514,6 +537,7 @@ void loop() {
 
   delay(500);
 
+  // Full checkerboard
   for (row=0;  row<16;  row++) {
     for (col=0;  col<colCount;  col++) {
       setPixel(row, col, (row + col) & 0x01 );
@@ -522,17 +546,33 @@ void loop() {
 
   delay(500);
 
+  // Complementary on
   for (row=0;  row<16;  row++) {
     for (col=0;  col<colCount;  col++) {
-      setPixel(row, col, (row + col + 1) & 0x01);
+      if ((row + col + 1) & 0x01) {
+        setPixel(row, col, true);
+      }
       //delay(5);
     }
   }
   delay(500);
 
+  // Original checkerboard off
+  for (row=0;  row<16;  row++) {
+    for (col=0;  col<colCount;  col++) {
+      if ((row + col) & 0x01) {
+        setPixel(row, col, false);
+      }
+    }
+  }
+  delay(500);
+
+  // Remaining on to off
   for (col=0;  col<colCount;  col++) {
     for (row=0;  row<16;  row++) {
-      setPixel(row, col, (row + col) >> 2 & 0x01);
+      if ((row + col + 1) & 0x01) {
+        setPixel(row, col, false);
+      }
     }
   }
 
@@ -622,4 +662,38 @@ void loop() {
     delay(15);
   }
   flipColumnOff(lastOn);
+
+  delay(500);
+
+  for (col=0;  col<colCount;  col++) {
+    flipColumnOn(col);
+  }
+
+  lastOn = colCount-1;
+  for (col=colCount-1;  col>=0;  col--) {
+    flipColumnOn(lastOn);
+    flipColumnOff(col);
+    lastOn = col;
+
+    delay(15);
+  }
+  flipColumnOn(lastOn);
+
+  lastOn = 0;
+  for (col=0;  col<colCount;  col++) {
+    flipColumnOn(lastOn);
+    flipColumnOff(col);
+    lastOn = col;
+
+    delay(15);
+  }
+  flipColumnOn(lastOn);
+
+  delay(500);
+
+  for (col=0;  col<colCount;  col++) {
+    flipColumnOff(col);
+  }
+
+  delay(500);
 }
