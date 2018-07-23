@@ -28,7 +28,7 @@ SPISettings SPImode = SPISettings(1000000, LSBFIRST, SPI_MODE0);
 byte panelCount = 0;
 
 // Number of addressable (real) columns
-byte colCount;
+byte colCount = 0;
 
 // Dynamically sized in setup
 byte *colVec = 0;
@@ -57,13 +57,12 @@ void shiftColVec() {
 }
 
 
-
-byte gapAdjust(byte col) {
+// Corrects a virtual (apparent) column position to a real column position.
+byte virtualColToActualCol(byte col) {
   for (byte g=0;  g<gapCount;  g++) {
     if (col >= gapStart[g])
       col += gapLength[g];
   }
-
   return col;
 }
 
@@ -138,7 +137,7 @@ void flipColumnOn(byte col) {
   
   colVecOff();
 
-  col = gapAdjust(col);
+  col = virtualColToActualCol(col);
 
   int pos = col / 4;
   int shift = col % 4;
@@ -157,7 +156,7 @@ void flipColumnOn(byte col) {
   SPI.transfer(0b00100010);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(125);
+  delayMicroseconds(150);
 
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
@@ -167,18 +166,17 @@ void flipColumnOn(byte col) {
   SPI.transfer(0b10001000);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(125);
+  delayMicroseconds(150);
 
   allRowsOff();
   allColsOff();
 }
 
-
 void flipColumnOff(byte col) {
   
   colVecOff();
 
-  col = gapAdjust(col);
+  col = virtualColToActualCol(col);
 
   int pos = col / 4;
   int shift = col % 4;
@@ -203,7 +201,7 @@ void flipColumnOff(byte col) {
   SPI.transfer(0b11101110);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(125);
+  delayMicroseconds(150);
 
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
@@ -213,11 +211,14 @@ void flipColumnOff(byte col) {
   SPI.transfer(0b10111011);
   SPI.endTransaction();
   digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(125);
+  delayMicroseconds(150);
 
   allRowsOff();
   allColsOff();
+
 }
+
+
 
 // Manually shift 0b10 on the column lines.
 void shiftColOff() {
@@ -371,13 +372,81 @@ void senseColumns() {
 }
 
 
+// Set all pixels in a column at once.  LSB of rowbits is top row (0).
+void setColumn(byte col, uint16_t rowbits) {
+
+  uint32_t hiRowVec = 0;
+  uint32_t loRowVec = 0;
+
+  // Build hiRowVec and loRowVec together.
+  // Encode and shift from MSB of rowbits into LSB of rowvecs.
+  for (byte i=0;  i<16;  i++) {
+    hiRowVec <<= 2;
+    loRowVec <<= 2;
+    if ((rowbits & 0b1000000000000000) != 0) {
+      // row high
+      hiRowVec &= 0b11111111111111111111111111111100;
+
+      loRowVec |= 0b00000000000000000000000000000010;
+      loRowVec &= 0b11111111111111111111111111111110;
+    }
+    else {
+      // Row low.
+      hiRowVec |= 0b00000000000000000000000000000010;
+      hiRowVec &= 0b11111111111111111111111111111110;
+
+      loRowVec |= 0b00000000000000000000000000000011;
+    }
+    rowbits <<= 1;
+  }
+  Serial.println();
+  // Set column low.
+  colVecOff();
+  byte colpos = col / 4;
+  byte colshift = col % 4;
+  byte colbits = (0b00000011 << (colshift << 1));
+  colVec[colpos] |= colbits;
+
+  // Turn on the ones.
+  shiftColVec();
+  digitalWrite(ROW_REG_CLK, LOW);
+  SPI.beginTransaction(SPImode);
+  for (byte n=0;  n<4;  n++) {
+    SPI.transfer(hiRowVec & 0xff);
+    hiRowVec >>= 8;
+  }
+	digitalWrite(ROW_REG_CLK, HIGH);
+
+  delayMicroseconds(150);
+
+  allColsOff();
+  //allRowsOff();
+
+  // Turn off the zeroes.
+  colVec[colpos] &= ~colbits;
+  shiftColVec();
+
+  digitalWrite(ROW_REG_CLK, LOW);
+  SPI.beginTransaction(SPImode);
+  for (byte n=0;  n<4;  n++) {
+    SPI.transfer(loRowVec & 0xff);
+    loRowVec >>= 8;
+  }
+	digitalWrite(ROW_REG_CLK, HIGH);
+
+  delayMicroseconds(150);
+
+  allColsOff();
+  allRowsOff();
+  
+}
 
 
 void setPixel(uint8_t row, uint8_t col, bool on) {
   byte rowvec[4];
 
   // Skip the gaps
-  col = gapAdjust(col);
+  col = virtualColToActualCol(col);
 
   for (int i=0; i<4; i++) {
     rowvec[i] = 0b10101010;
@@ -416,6 +485,8 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
 
   allColsOff();
   allRowsOff();
+
+  //delay(5);
 }
 
 void testGapper() {
@@ -468,8 +539,6 @@ void setup() {
   digitalWrite(COL_REG_CLK, HIGH);
 
   Serial.begin(115200);
-  Serial.println("Whazzup!");
-  Serial.println("I mean whazzup!");
 
   SPI.begin();
   allRowsOff();
@@ -485,6 +554,8 @@ void loop() {
   int8_t row;
   int8_t col;
 
+
+  // Wipe down
   for (row=0;  row< 16;  row++) {
     for (col=0;  col<colCount;  col++) {
       setPixel(row, col, true);
@@ -498,6 +569,8 @@ void loop() {
 
   delay(500);
 
+
+  // Wipe right
   for (col=0;  col<colCount;  col++) {
     for (row=0;  row<16;  row++) {
       setPixel(row, col, true);
@@ -511,84 +584,109 @@ void loop() {
 
   delay(500);
 
-  for (row=0;  row< 16;  row++) {
-    for (col=0;  col<colCount;  col++) {
-      setPixel(15-row, colCount-1-col, true);
+  // Wipe up
+  for (row=15;  row>=0;  row--) {
+    for (col=colCount-1;  col>=0;  col--) {
+      setPixel(row, col, true);
     }
   }
-  for (row=0; row<16; row++) {
-    for (col=0; col<colCount;  col++) {
-      setPixel(15-row, colCount-1-col, false);
+  for (row=15; row>=0; row--) {
+    for (col=colCount-1; col>=0;  col--) {
+      setPixel(row, col, false);
     }
   }
 
   delay(500);
 
-  for (col=0;  col<colCount;  col++) {
-    for (row=0;  row<16;  row++) {
-      setPixel(15-row, colCount-1-col, true);
+  // Wipe left
+  for (col=colCount-1;  col>=0;  col--) {
+    for (row=15;  row>=0;  row--) {
+      setPixel(row, col, true);
     }
   }
-  for (col=0;  col<colCount;  col++) {
-    for (row=0;  row<16;  row++) {
-      setPixel(15-row, colCount-1-col, false);
+  for (col=colCount-1;  col>=0;  col--) {
+    for (row=15;  row>=0;  row--) {
+      setPixel(row, col, false);
     }
   }
 
   delay(500);
 
   // Full checkerboard
-  for (row=0;  row<16;  row++) {
-    for (col=0;  col<colCount;  col++) {
+  for (col=0;  col<colCount;  col++) {
+    for (row=0;  row<16;  row++) {
       setPixel(row, col, (row + col) & 0x01 );
     }
   }
 
   delay(500);
 
-  // Complementary on
-  for (row=0;  row<16;  row++) {
-    for (col=0;  col<colCount;  col++) {
-      if ((row + col + 1) & 0x01) {
-        setPixel(row, col, true);
-      }
-      //delay(5);
-    }
-  }
-  delay(500);
-
-  // Original checkerboard off
-  for (row=0;  row<16;  row++) {
-    for (col=0;  col<colCount;  col++) {
-      if ((row + col) & 0x01) {
-        setPixel(row, col, false);
-      }
-    }
-  }
-  delay(500);
-
-  // Remaining on to off
+  // Alternate checkerboard
   for (col=0;  col<colCount;  col++) {
     for (row=0;  row<16;  row++) {
-      if ((row + col + 1) & 0x01) {
-        setPixel(row, col, false);
-      }
+      setPixel(row, col, (row + col + 1) & 0x01 );
     }
   }
 
   delay(500);
 
+  // Full checkerboard
+  for (col=0;  col<colCount;  col++) {
+    for (row=0;  row<16;  row++) {
+      setPixel(row, col, (row + col) & 0x01 );
+    }
+  }
+
+  delay(500);
+
+  // Alternate checkerboard
+  for (col=0;  col<colCount;  col++) {
+    for (row=0;  row<16;  row++) {
+      setPixel(row, col, (row + col + 1) & 0x01 );
+    }
+  }
+
+  delay(500);
+
+  // Row flash
+  for(byte n=0;  n<8;  n++) {
+    for (col=0;  col<colCount;  col++) {
+      setColumn(col, (uint16_t)0b0001000100010001);
+    }
+    for (col=0;  col<colCount;  col++) {
+      setColumn(col, (uint16_t)0b0010001000100010);
+    }
+    for (col=0;  col<colCount;  col++) {
+      setColumn(col, (uint16_t)0b0100010001000100);
+    }
+    for (col=0;  col<colCount;  col++) {
+      setColumn(col, (uint16_t)0b1000100010001000);
+    }
+  }
+
+  delay(500);
+
+
+  // Slash
   for (col=0;  col<colCount;  col++) {
     for (row=0;  row<16;  row++) {
       setPixel(row, col, ~((row + col) >> 2) & 0x01);
-      }
     }
+  }
+
+  delay(500);
+  for (col=0;  col<colCount;  col++) {
+    for (row=0;  row<16;  row++) {
+      setPixel(row, col, ((row + col) >> 2) & 0x01);
+    }
+  }
 
   delay(500);
 
+  // Backslash
   for (col=0;  col<colCount;  col++) {
     for (row=0;  row<16;  row++) {
-      setPixel(row, col, (colCount +row - col) >> 2 & 0x01);
+      setPixel(row, col, ((colCount +row - col) >> 2) & 0x01);
     }
   }
 
@@ -602,6 +700,7 @@ void loop() {
 
   delay(500);
 
+  // Horizontal stripes
   for (row=0; row<16; row++) {
     for (col=0; col<colCount; col++) {
       if (row % 3 == 0) {
@@ -616,6 +715,7 @@ void loop() {
 
   delay(500);
 
+  // Vertical stripes
   for (row=0; row<16; row++) {
     for (col=0; col<colCount; col++) {
       if (col % 3 == 0) {
@@ -624,21 +724,21 @@ void loop() {
       else {
         setPixel(row, col, false);
       }
- 
     }
   }
 
   delay(500);
 
-  for (byte n=0;  n<8;  n++) {
+  // Flash all columns
+  for (byte n=0;  n<4;  n++) {
     for (col=0;  col<colCount;  col++) {
       flipColumnOn(col);
     }
-    delay(20);
+    delay(15);
     for (col=0;  col<colCount;  col++) {
       flipColumnOff(col);
     }
-    delay(10);
+    delay(15);
   }
 
   delay(500);
