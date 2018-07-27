@@ -34,27 +34,52 @@
 const byte rowCount = 16;
 const byte colCount = 30;
 
-SPISettings SPImode = SPISettings(1000000, LSBFIRST, SPI_MODE0);
+struct coord {
+    int8_t X;
+    int8_t Y;
+};
 
-// Delay time between snake moves
-int moveDelay = 100;
+SPISettings SPImode = SPISettings(1000000, LSBFIRST, SPI_MODE0);
 
 // Scoring
 int score = 0;
 int highScore = 0;
+int moveCount;
+
 
 bool wrapWall = false;
-
-struct coord {
-    byte X;
-    byte Y;
-};
 
 // Positions occupied by snake. Index 0 is the tail, and
 // index snakelen-1 is the head.
 const byte MAX_SNAKE = 150;
 coord snake[MAX_SNAKE];
 byte snakelen = 0;
+
+// Toggled by ISR
+volatile bool togglefood = true;
+// True to show foodsies
+volatile bool foodactive = false;
+
+bool foodstate = false;
+
+const byte MAX_FOOD = 5;
+coord food[MAX_FOOD];
+byte foodlen = 0;
+
+
+void setFood(bool state) {
+
+  for (byte n=0;  n<foodlen;  n++) {
+    setPixel(food[n], state);
+  }
+}
+
+void setSnake(bool state) {
+
+  for (byte n=0;  n<snakelen;  n++) {
+    setPixel(snake[n], state);
+  }
+}
 
 void resetGame() {
     snakelen = 4;
@@ -67,6 +92,13 @@ void resetGame() {
     snake[3].X = 8;
     snake[3].Y = 8;
     score = 0;
+    moveCount = 0;
+
+    foodlen = 1;
+    food[0].X = 24;
+    food[0].Y = 2;
+    foodstate = false;
+    foodactive = true;
 }
 
 //
@@ -121,6 +153,20 @@ void setupPanel() {
 
 }
 
+void configureTickTimer() {
+
+	// Configure timer 1 to interrupt at 1Hz
+ 	OCR1A = 15625;
+
+	TCCR1A = 0;
+  // Mode 4, CTC on OCR1A, prescaler 1024
+  TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
+
+  //Set interrupt on compare match
+  TIMSK1 |= (1 << OCIE1A);
+}
+
+
 // Write 0b10 pairs (off) into colVec
 void colVecOff() {
   for (byte c=0;  c<8;  c++) {
@@ -137,7 +183,6 @@ void shiftColVec() {
   SPI.endTransaction();
  	digitalWrite(COL_REG_CLK, HIGH);
 }
-
 
 // Turn off all drivers
 void allRowsOff() {
@@ -222,6 +267,12 @@ void setColumn(byte col, uint16_t rowbits) {
   allRowsOff();
 }
 
+void setAllColumns(uint16_t rowbits) {
+  for (byte col=0;  col<colCount;  col++) {
+    setColumn(col, rowbits);
+  }
+}
+
 
 void setPixel(uint8_t row, uint8_t col, bool on) {
   byte rowvec[4];
@@ -263,12 +314,11 @@ void setPixel(uint8_t row, uint8_t col, bool on) {
 
   allColsOff();
   allRowsOff();
-
-  //delay(5);
 }
 
-void setPixel(coord c, bool on) {
-  setPixel(c.Y, c.X, on);
+
+void setPixel(coord c, bool state) {
+  setPixel(c.Y, c.X, state);
 }
 
 
@@ -276,16 +326,19 @@ byte joystick() {
 
     if (nunchuk_read()) {
 
-        if (nunchuk_joystickX() < -50) {
+      int8_t X = nunchuk_joystickX();
+      int8_t Y = nunchuk_joystickY();
+
+        if (X < -50  &&  X < Y) {
           return LEFT;
         }
-        if (nunchuk_joystickX() > 50) {
+        if (X > 50  &&  X > Y) {
           return RIGHT;
         }
-        if (nunchuk_joystickY() < -50) {
+        if (Y < -50  &&  Y < X) {
           return DOWN;
         }
-        if (nunchuk_joystickY() > 50) {
+        if (Y > 50  &&  Y > X) {
           return UP;
         }
         if (nunchuk_buttonZ() > 0) {
@@ -296,18 +349,17 @@ byte joystick() {
     return NONE;
 }
 
+
 void clearPanel() {
-      for (byte col=0;  col<30;  col++) {
-          setColumn(col, 0b0101010101010101);
-      }
-      delay(250);
-      for (byte col=0;  col<30;  col++) {
-          setColumn(col, 0b1010101010101010);
-      }
-      delay(250);
-      for (byte col=0;  col<30;  col++) {
-          setColumn(col, 0b0000000000000000);
-      }
+  setAllColumns(0b1010101010101010);
+  delay(100);
+  setAllColumns(0b0101010101010101);
+  delay(100);
+  setAllColumns(0b1010101010101010);
+  delay(100);
+  setAllColumns(0b0101010101010101);
+  delay(100);
+  setAllColumns(0);
 }
 
 void showSnake() {
@@ -317,8 +369,9 @@ void showSnake() {
 }
 
 // Move the head of the snake, optionally getting longer.
-// Returns true if move is OK, or false on badness.
-bool moveSnake(byte direction, bool enlongen) {
+// Returns 0 if move is OK, or -1 if snake hits self or walls.
+// Returns 1 on food eating.
+int8_t moveSnake(byte direction, bool enlongen) {
 
   coord head = snake[snakelen-1];
 
@@ -343,22 +396,22 @@ bool moveSnake(byte direction, bool enlongen) {
   switch(direction){
     case UP:
       if (head.Y == 0)
-        return false;
+        return -1;
       head.Y = head.Y-1;
       break;
     case DOWN:
       if (head.Y == rowCount-1)
-        return false;
+        return -1;
       head.Y = head.Y+1;
       break;
     case LEFT:
       if (head.X == 0)
-        return false;
+        return -1;
       head.X = head.X-1;
       break;
     case RIGHT:
       if (head.X == colCount-1)
-        return false;
+        return -1;
       head.X = head.X+1;
       break;
   }
@@ -366,16 +419,45 @@ bool moveSnake(byte direction, bool enlongen) {
   snake[snakelen-1] = head;
   setPixel(head, true);
 
-  // Detect self-crossing snakeness: is head already in rest of body?
-  for (byte n=0;  n<snakelen-1;  n++) {
-    if (head.X == snake[n].X  &&  head.Y == snake[n].Y)
-      return false;
+  if (hitSelf(head)) {
+    // Game over.
+    return -1;
   }
-  
-  return true;
+
+  if (hitFood(head)) {
+    return 1;
+  }
+
+  return 0;
 }
 
-// Wait until a joystick action, then return it. 
+// Detect self-crossing snakeness: is head already in rest of body?
+bool hitSelf(coord point) {
+  for (byte n=0;  n<snakelen-1;  n++) {
+    if (point.X == snake[n].X  &&  point.Y == snake[n].Y)
+      return true;
+  }
+
+  return false;
+}
+
+
+bool hitFood(coord point) {
+  for (byte n=0;  n<foodlen;  n++) {
+    if (point.X == food[n].X  &&  point.Y == food[n].Y) {
+      // Consume food
+      if (n < foodlen-1) {
+        food[n] = food[foodlen-1];
+      }
+      foodlen--;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Wait until a joystick action, then return it.
 byte awaitAction() {
   byte action = NONE;
 
@@ -386,50 +468,170 @@ byte awaitAction() {
   return action;
 }
 
+// Add more food.
+void moarFood(byte count) {
+
+  for (byte n=0;  n<count;  n++) {
+    if (foodlen >= MAX_FOOD) {
+      return;
+    }
+    addFoodAwayFromSnakeAndFood(8);
+  }
+}
+
+// Pick a food location at least dist positions away from snake and other food.
+// Try up to 20 times.
+void addFoodAwayFromSnakeAndFood(int8_t dist) {
+
+  bool tooClose = false;
+
+  coord f = {};
+
+  for (byte tries=0;  tries<20;  tries++) {
+    f.X = random(colCount);
+    f.Y = random(rowCount);
+
+    tooClose = false;
+
+    // Compare with snake
+    for (byte n=0;  n<snakelen;  n++) {
+      if ((f.X > snake[n].X - dist) && (f.X < snake[n].X + dist) && (f.Y > snake[n].Y - dist) && (f.Y < snake[n].Y + dist)) {
+        tooClose = true;
+        break;
+      }
+    }
+
+    if (!tooClose) {
+      // Compare with food
+      for (byte n=0;  n<foodlen;  n++) {
+        if ((f.X > food[n].X - dist) && (f.X < food[n].X + dist) && (f.Y > food[n].Y - dist) && (f.Y < food[n].Y + dist)) {
+          tooClose = true;
+          break;
+        }
+      }
+    }
+
+    if (!tooClose) {
+      food[foodlen++] = f;
+      return;
+    }
+  }
+
+  // No dice.
+  return;
+}
+
+byte limitRightAngles(byte action, byte prevAction) {
+      // Limit direction to right angle moves (no backsies)
+    switch (action) {
+      case UP:
+        if (prevAction == DOWN)
+          return prevAction;
+        break;
+      case DOWN:
+        if (prevAction == UP)
+          return prevAction;
+        break;
+      case LEFT:
+        if (prevAction == RIGHT)
+          return prevAction;
+        break;
+      case RIGHT:
+        if (prevAction == LEFT)
+          return prevAction;
+    }
+
+  return action;
+}
+
 // Play a single game.
 void playGame() {
   Serial.println("Play snake!");
 
   showSnake();
 
-  byte prevAction = awaitAction();
-  bool playing = true;
-  byte longen = 1;
+  byte action = NONE;
+  byte prevAction = NONE;
+  byte halfAction = NONE;
+  int speedCount = 0;
+  int foodCount = 0;
+  int moveDelay = 250;
 
-  while (playing) {
+  while (awaitAction() == LEFT)
+    ;
+  int8_t result = 0;
+  bool longen = false;
 
-    byte action = joystick();
+  while (result > -1) {
+
+    // Handle food
+    setFood(foodstate);
+    foodstate = !foodstate;
+
+    // Read joystick and move snake
+    if (halfAction != NONE) {
+      action = halfAction;
+    }
+    else {
+      action = joystick();
+    }
+  
     if (action == NONE) {
       action = prevAction;
     }
 
-    // Limit direction to right angle moves (no backsies)
-    switch (action) {
-      case UP:
-        if (prevAction == DOWN)
-          action = prevAction;
-        break;
-      case DOWN:
-        if (prevAction == UP)
-          action = prevAction;
-        break;
-      case LEFT:
-        if (prevAction == RIGHT)
-          action = prevAction;
-        break;
-      case RIGHT:
-        if (prevAction == LEFT)
-          action = prevAction;
-    }
+    action = limitRightAngles(action, prevAction);
 
-    if (++longen > 10) {
-      longen = 0;
-    }
-
-    playing = moveSnake(action, longen == 0);
     prevAction = action;
+    result = moveSnake(action, longen);
+    longen = false;
+    if (result == 1) {
+      // POINTZ
+      score += 5;
+      Serial.print("Score: ");
+      Serial.println(score);
 
-    delay(moveDelay);
+      moarFood(1);
+      longen = true;
+    }
+
+    moveCount++;
+    speedCount++;
+    foodCount++;
+    if (speedCount > 120) {
+      speedCount = 0;
+      if (moveDelay > 50) {
+        moveDelay -= 20;
+      }
+    }
+    if (foodCount > 100) {
+      foodCount = 0;
+      moarFood(1);
+    }
+
+    // Half delay
+    delay(moveDelay >> 1);
+
+    // Check joystick between ticks for better gameplay
+    halfAction = joystick();
+
+    // Other half of delay.
+    delay(moveDelay >> 1);
+  }
+}
+
+void dissolveSnake() {
+
+  for (byte n=0;  n<5;  n++) {
+    setSnake(false);
+    delay(150);
+    setSnake(true);
+    delay(150);
+  }
+  // Dissolve snake pixel by pixel
+  for (byte n=0;  n<snakelen;  n++) {
+    setPixel(snake[n], false);
+    delay(50);
   }
 }
 
@@ -443,22 +645,24 @@ void showScores() {
   Serial.print("High score: ");
   Serial.println(highScore);
 }
+
 void setup() {
-
-    SPI.begin();
-    setupPanel();
-
-    Serial.begin(115200);
-    Wire.begin();
-    nunchuk_init_power(); // A1 and A2 is power supply
-    nunchuk_init();
-
-    clearPanel();
+  SPI.begin();
+  setupPanel();
+  Serial.begin(115200);
+  Wire.begin();
+  nunchuk_init_power(); // A1 and A2 is power supply
+  nunchuk_init();
+  randomSeed(analogRead(0));
+  clearPanel();
 }
 
 void loop() {
-    resetGame();
-    clearPanel();
-    playGame();
-    showScores();
-} 
+  resetGame();
+  clearPanel();
+  playGame();
+  setFood(false);
+  delay(1500);
+  dissolveSnake();
+  showScores();
+}
