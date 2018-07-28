@@ -375,6 +375,9 @@ void senseColumns() {
 // Set all pixels in a column at once.  LSB of rowbits is top row (0).
 void setColumn(byte col, uint16_t rowbits) {
 
+  // Skip the gaps
+  col = virtualColToActualCol(col);
+
   uint32_t hiRowVec = 0;
   uint32_t loRowVec = 0;
 
