@@ -41,12 +41,27 @@ struct coord {
 
 SPISettings SPImode = SPISettings(1000000, LSBFIRST, SPI_MODE0);
 
+//
+// Bit pairs for various outputs:
+//
+// HL
+// 00: HIGH: high side on (pulled high), low side off
+// 01: XLOW: diode prevents pullup enabling high side, low side on
+// 10: OFF: high side off, low side off
+// 11: LOW: high side off, low side on
+
+byte colVec[8];
+
 // Scoring
-int score = 0;
+int score1 = 0;
+int score2 = 0;
 int highScore = 0;
 int moveCount;
 
+byte playerCount = 2;
+byte activePlayer = 1;
 
+bool invert = false;
 bool wrapWall = false;
 
 // Positions occupied by snake. Index 0 is the tail, and
@@ -54,11 +69,6 @@ bool wrapWall = false;
 const byte MAX_SNAKE = 150;
 coord snake[MAX_SNAKE];
 byte snakelen = 0;
-
-// Toggled by ISR
-volatile bool togglefood = true;
-// True to show foodsies
-volatile bool foodactive = false;
 
 bool foodstate = false;
 
@@ -82,35 +92,40 @@ void setSnake(bool state) {
 }
 
 void resetGame() {
-    snakelen = 4;
-    snake[0].X = 5;
-    snake[0].Y = 8;
-    snake[1].X = 6;
-    snake[1].Y = 8;
-    snake[2].X = 7;
-    snake[2].Y = 8;
-    snake[3].X = 8;
-    snake[3].Y = 8;
-    score = 0;
-    moveCount = 0;
-
-    foodlen = 1;
-    food[0].X = 24;
-    food[0].Y = 2;
-    foodstate = false;
-    foodactive = true;
+  score1 = 0;
+  score2 = 0;
+  activePlayer = 1;
 }
 
-//
-// Bit pairs for various outputs:
-//
-// HL
-// 00: HIGH: high side on (pulled high), low side off
-// 01: XLOW: diode prevents pullup enabling high side, low side on
-// 10: OFF: high side off, low side off
-// 11: LOW: high side off, low side on
+void resetHalfRound(byte player) {
 
-byte colVec[8];
+    snakelen = 4;
+    if (player == 1) {
+      snake[0].X = 5;
+      snake[0].Y = 8;
+      snake[1].X = 6;
+      snake[1].Y = 8;
+      snake[2].X = 7;
+      snake[2].Y = 8;
+      snake[3].X = 8;
+      snake[3].Y = 8;
+    }
+    else {
+      snake[0].X = 24;
+      snake[0].Y = 8;
+      snake[1].X = 23;
+      snake[1].Y = 8;
+      snake[2].X = 22;
+      snake[2].Y = 8;
+      snake[3].X = 21;
+      snake[3].Y = 8;
+    }
+    foodlen = 0;
+    addFoodAwayFromSnakeAndFood(12);
+    foodstate = false;
+
+    moveCount = 0;
+}
 
 void setupPanel() {
   pinMode(COL_REG_CLK, OUTPUT);
@@ -153,20 +168,6 @@ void setupPanel() {
 
 }
 
-void configureTickTimer() {
-
-	// Configure timer 1 to interrupt at 1Hz
- 	OCR1A = 15625;
-
-	TCCR1A = 0;
-  // Mode 4, CTC on OCR1A, prescaler 1024
-  TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
-
-  //Set interrupt on compare match
-  TIMSK1 |= (1 << OCIE1A);
-}
-
-
 // Write 0b10 pairs (off) into colVec
 void colVecOff() {
   for (byte c=0;  c<8;  c++) {
@@ -204,6 +205,10 @@ void allColsOff() {
 // Set all pixels in a column at once.  LSB of rowbits is top row (0).
 void setColumn(byte col, uint16_t rowbits) {
 
+  if (invert) {
+    rowbits = ~rowbits;
+  }
+
   uint32_t hiRowVec = 0;
   uint32_t loRowVec = 0;
 
@@ -213,7 +218,7 @@ void setColumn(byte col, uint16_t rowbits) {
     hiRowVec <<= 2;
     loRowVec <<= 2;
     if ((rowbits & 0b1000000000000000) != 0) {
-      // row high
+      // Row high.
       hiRowVec &= 0b11111111111111111111111111111100;
 
       loRowVec |= 0b00000000000000000000000000000010;
@@ -228,39 +233,66 @@ void setColumn(byte col, uint16_t rowbits) {
     }
     rowbits <<= 1;
   }
-  // Set column low.
-  colVecOff();
+
+  // Locate column byte and bits
   byte colpos = col / 4;
   byte colshift = col % 4;
-  byte colbits = (0b00000011 << (colshift << 1));
-  colVec[colpos] |= colbits;
+  byte colbits = (0b11 << (colshift << 1));
 
-  // Turn on the ones.
+  // Turn on the ones: rows high, columns low.
+  // Send in banks of 8 dots (16 bits) to limit maximum current.
+  colVecOff();
+  colVec[colpos] |= colbits;
   shiftColVec();
+
+  // First bank of 8
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  for (byte n=0;  n<4;  n++) {
-    SPI.transfer(hiRowVec & 0xff);
-    hiRowVec >>= 8;
-  }
+  SPI.transfer(hiRowVec & 0xff);                // Byte 0 (LSB)
+  SPI.transfer((hiRowVec & 0xff00) >> 8);       // Byte 1
+  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK, HIGH);
-
   delayMicroseconds(150);
 
+  // Second bank of 8.  Leave column drive as-is.
+  digitalWrite(ROW_REG_CLK, LOW);
+  SPI.beginTransaction(SPImode);
+  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer((hiRowVec & 0xff0000) >> 16);    // Byte 2
+  SPI.transfer((hiRowVec & 0xff000000) >> 24);  // Byte 3 (MSB)
+  SPI.endTransaction();
+	digitalWrite(ROW_REG_CLK, HIGH);
+  delayMicroseconds(150);
+   
   allColsOff();
 
-  // Turn off the zeroes.
+  // Turn off the zeroes: rows low, columns high.
+  // Send in banks of 8 dots (16 bits) to limit current.
   colVec[colpos] &= ~colbits;
   shiftColVec();
 
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  for (byte n=0;  n<4;  n++) {
-    SPI.transfer(loRowVec & 0xff);
-    loRowVec >>= 8;
-  }
+  SPI.transfer(loRowVec & 0xff);                // Byte 0 (LSB)
+  SPI.transfer((loRowVec & 0xff00) >> 8);       // Byte 1
+  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer(0b10101010);                     // Row off bits
+	SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK, HIGH);
+  delayMicroseconds(150);
 
+  // Second bank of 8.  Leave column drive as-is.
+  digitalWrite(ROW_REG_CLK, LOW);
+  SPI.beginTransaction(SPImode);
+  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer((loRowVec & 0xff0000) >> 16);    // Byte 2
+  SPI.transfer((loRowVec & 0xff000000) >> 24);  // Byte 3 (MSB)
+  SPI.endTransaction();
+	digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(150);
 
   allColsOff();
@@ -276,6 +308,10 @@ void setAllColumns(uint16_t rowbits) {
 
 void setPixel(uint8_t row, uint8_t col, bool on) {
   byte rowvec[4];
+
+  if (invert) {
+    on = !on;
+  }
 
   for (int i=0; i<4; i++) {
     rowvec[i] = 0b10101010;
@@ -329,21 +365,19 @@ byte joystick() {
       int8_t X = nunchuk_joystickX();
       int8_t Y = nunchuk_joystickY();
 
-        if (X < -50  &&  X < Y) {
+        if (X < -80  &&  X < Y) {
           return LEFT;
         }
-        if (X > 50  &&  X > Y) {
+        if (X > 80  &&  X > Y) {
           return RIGHT;
         }
-        if (Y < -50  &&  Y < X) {
+        if (Y < -80  &&  Y < X) {
           return DOWN;
         }
-        if (Y > 50  &&  Y > X) {
+        if (Y > 80  &&  Y > X) {
           return UP;
         }
-        if (nunchuk_buttonZ() > 0) {
-          return BUTTON;
-        }
+
     }
 
     return NONE;
@@ -351,14 +385,14 @@ byte joystick() {
 
 
 void clearPanel() {
+  
+  for (byte n=0;  n<4;  n++) {
   setAllColumns(0b1010101010101010);
   delay(100);
   setAllColumns(0b0101010101010101);
   delay(100);
-  setAllColumns(0b1010101010101010);
-  delay(100);
-  setAllColumns(0b0101010101010101);
-  delay(100);
+  }
+  
   setAllColumns(0);
 }
 
@@ -419,12 +453,12 @@ int8_t moveSnake(byte direction, bool enlongen) {
   snake[snakelen-1] = head;
   setPixel(head, true);
 
-  if (hitSelf(head)) {
+  if (hitSelf()) {
     // Game over.
     return -1;
   }
 
-  if (hitFood(head)) {
+  if (hitFood()) {
     return 1;
   }
 
@@ -432,19 +466,22 @@ int8_t moveSnake(byte direction, bool enlongen) {
 }
 
 // Detect self-crossing snakeness: is head already in rest of body?
-bool hitSelf(coord point) {
+bool hitSelf() {
+
+  coord head = snake[snakelen-1];
   for (byte n=0;  n<snakelen-1;  n++) {
-    if (point.X == snake[n].X  &&  point.Y == snake[n].Y)
+    if (head.X == snake[n].X  &&  head.Y == snake[n].Y)
       return true;
   }
 
   return false;
 }
 
-
-bool hitFood(coord point) {
+// Returns true if head is over food. Consumes food.
+bool hitFood() {
+  coord head = snake[snakelen-1];
   for (byte n=0;  n<foodlen;  n++) {
-    if (point.X == food[n].X  &&  point.Y == food[n].Y) {
+    if (head.X == food[n].X  &&  head.Y == food[n].Y) {
       // Consume food
       if (n < foodlen-1) {
         food[n] = food[foodlen-1];
@@ -469,18 +506,15 @@ byte awaitAction() {
 }
 
 // Add more food.
-void moarFood(byte count) {
+void moarFood() {
 
-  for (byte n=0;  n<count;  n++) {
-    if (foodlen >= MAX_FOOD) {
-      return;
-    }
-    addFoodAwayFromSnakeAndFood(8);
-  }
+  if (foodlen >= MAX_FOOD)
+    return;
+  addFoodAwayFromSnakeAndFood(6);
 }
 
 // Pick a food location at least dist positions away from snake and other food.
-// Try up to 20 times.
+// Try up to 20 times, then give up.
 void addFoodAwayFromSnakeAndFood(int8_t dist) {
 
   bool tooClose = false;
@@ -544,9 +578,10 @@ byte limitRightAngles(byte action, byte prevAction) {
   return action;
 }
 
-// Play a single game.
-void playGame() {
-  Serial.println("Play snake!");
+// Play a single round, one or two players.
+void playHalfRound(byte player) {
+
+  invert = (player == 2);
 
   showSnake();
 
@@ -556,8 +591,13 @@ void playGame() {
   int speedCount = 0;
   int foodCount = 0;
   int moveDelay = 250;
+  
+  // Wait for non-LEFT action.
+  byte idleAction = LEFT;
+  if (player == 2)
+    idleAction = RIGHT;
 
-  while (awaitAction() == LEFT)
+  while (awaitAction() == idleAction)
     ;
   int8_t result = 0;
   bool longen = false;
@@ -586,12 +626,7 @@ void playGame() {
     result = moveSnake(action, longen);
     longen = false;
     if (result == 1) {
-      // POINTZ
-      score += 5;
-      Serial.print("Score: ");
-      Serial.println(score);
-
-      moarFood(1);
+      moarFood();
       longen = true;
     }
 
@@ -606,7 +641,7 @@ void playGame() {
     }
     if (foodCount > 100) {
       foodCount = 0;
-      moarFood(1);
+      moarFood();
     }
 
     // Half delay
@@ -620,28 +655,74 @@ void playGame() {
   }
 }
 
-void dissolveSnake() {
+// Play a full game.
+void playGame() {
+  Serial.println("\n\nPlay snake!");
 
-  for (byte n=0;  n<5;  n++) {
-    setSnake(false);
-    delay(150);
-    setSnake(true);
-    delay(150);
+  for (byte r=1;  r<=3;  r++) {
+    Serial.print("Round ");
+    Serial.println(r);
+
+    invert = false;
+    resetHalfRound(1);
+    clearPanel();
+    playHalfRound(1);
+    setFood(false);
+    scoreRound(1);
+    Serial.print("  Player 1 score: ");
+    Serial.println(score1);
+    
+    if (playerCount == 2) {
+      invert = true;
+      resetHalfRound(2);
+      clearPanel();
+      playHalfRound(2);
+      setFood(false);
+      scoreRound(2);
+      Serial.print("  Player 2 score: ");
+      Serial.println(score2);
+    }
   }
+}
+
+void scoreRound(byte player) {
+
+  for (byte n=0;  n<8;  n++) {
+    setSnake(false);
+    delay(25);
+    setSnake(true);
+    delay(25);
+  }
+  delay(1500);
+
   // Dissolve snake pixel by pixel
   for (byte n=0;  n<snakelen;  n++) {
     setPixel(snake[n], false);
-    delay(50);
+    delay(100);
+
+    if (player == 1) {
+      score1 += 25;
+    }
+    else {
+      score2 += 25;
+    }
   }
 }
 
 void showScores() {
-  Serial.print("Your score: ");
-  Serial.println(score);
+  Serial.println("Scores: ");
+  Serial.print("  Player 1: ");
+  Serial.println(score1);
+  Serial.print("  Player 2: ");
+  Serial.println(score2);
 
-  if (score > highScore) {
-    highScore = score;
+  if (score1 > highScore) {
+    highScore = score1;
   }
+  if (score2 > highScore) {
+    highScore = score2;
+  }
+
   Serial.print("High score: ");
   Serial.println(highScore);
 }
@@ -654,15 +735,10 @@ void setup() {
   nunchuk_init_power(); // A1 and A2 is power supply
   nunchuk_init();
   randomSeed(analogRead(0));
-  clearPanel();
 }
 
 void loop() {
   resetGame();
-  clearPanel();
   playGame();
-  setFood(false);
-  delay(1500);
-  dissolveSnake();
   showScores();
 }

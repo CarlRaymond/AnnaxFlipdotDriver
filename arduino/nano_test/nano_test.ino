@@ -402,7 +402,6 @@ void setColumn(byte col, uint16_t rowbits) {
     }
     rowbits <<= 1;
   }
-  Serial.println();
   // Set column low.
   colVecOff();
   byte colpos = col / 4;
