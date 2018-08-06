@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <Wire.h>
 #include "Nunchuk.h"
+#include "digits.h"
 
 #define COL_REG_CLK 4
 #define ROW_REG_CLK 5
@@ -23,13 +24,12 @@
 #define CTRL_B3 19
 
 
-// Joystick moves
+// Joystick actions
 #define NONE 0
 #define UP 1
 #define DOWN 2
 #define RIGHT 3
 #define LEFT 4
-#define BUTTON 5
 
 const byte rowCount = 16;
 const byte colCount = 30;
@@ -202,8 +202,14 @@ void allColsOff() {
   shiftColVec();
 }
 
-// Set all pixels in a column at once.  LSB of rowbits is top row (0).
 void setColumn(byte col, uint16_t rowbits) {
+  setColumn(col, rowbits, 0xffff);
+}
+
+// Set all pixels in a column at once.  LSB of rowbits is top row (0).
+// When mask bit is 1, show corresponding rowbit. When mask bit is 0,
+// do not change corresponding rowbit.
+void setColumn(byte col, uint16_t rowbits, uint16_t mask) {
 
   if (invert) {
     rowbits = ~rowbits;
@@ -217,21 +223,39 @@ void setColumn(byte col, uint16_t rowbits) {
   for (byte i=0;  i<16;  i++) {
     hiRowVec <<= 2;
     loRowVec <<= 2;
-    if ((rowbits & 0b1000000000000000) != 0) {
-      // Row high.
-      hiRowVec &= 0b11111111111111111111111111111100;
+    if ((rowbits & 0x8000) != 0) {
+      // 1 bit.
+      if ((mask & 0x8000) != 0) {
+        // Bit active. High side HIGH.
+        hiRowVec &= 0b11111111111111111111111111111100;    
+      }
+      else {
+        // Masked out. High side OFF.
+        hiRowVec |= 0b00000000000000000000000000000010;
+        hiRowVec &= 0b11111111111111111111111111111110;
+      }
 
+      // Low side OFF.
       loRowVec |= 0b00000000000000000000000000000010;
       loRowVec &= 0b11111111111111111111111111111110;
     }
     else {
-      // Row low.
+      // 0 bit. High side OFF.
       hiRowVec |= 0b00000000000000000000000000000010;
       hiRowVec &= 0b11111111111111111111111111111110;
 
-      loRowVec |= 0b00000000000000000000000000000011;
+      if ((mask & 0x8000) != 0) {
+        // Active. Low side LOW.
+        loRowVec |= 0b00000000000000000000000000000011;
+      }
+      else {
+        // Masked out. Low side OFF.
+        loRowVec |= 0b00000000000000000000000000000010;
+        loRowVec &= 0b11111111111111111111111111111110;
+      }
     }
     rowbits <<= 1;
+    mask <<= 1;
   }
 
   // Locate column byte and bits
@@ -240,29 +264,39 @@ void setColumn(byte col, uint16_t rowbits) {
   byte colbits = (0b11 << (colshift << 1));
 
   // Turn on the ones: rows high, columns low.
-  // Send in banks of 8 dots (16 bits) to limit maximum current.
+  // Send in odd/even banks of 8 dots (16 bits) to limit maximum current.
   colVecOff();
   colVec[colpos] |= colbits;
   shiftColVec();
 
-  // First bank of 8
+  // First bank of 8. Set odd numbered pixels OFF, leaving even
+  // pixels as-is.
+  uint32_t bits = (hiRowVec | 0b10001000100010001000100010001000) & 0b10111011101110111011101110111011;
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(hiRowVec & 0xff);                // Byte 0 (LSB)
-  SPI.transfer((hiRowVec & 0xff00) >> 8);       // Byte 1
-  SPI.transfer(0b10101010);                     // Row off bits
-  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3
   SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(150);
 
-  // Second bank of 8.  Leave column drive as-is.
+  // Second bank of 8.  Set even numbered pixels OFF, leaving
+  // odd pixels as-is. Leave column drive as-is.
+  bits = (hiRowVec | 0b00100010001000100010001000100010) & 0b11101110111011101110111011101110;
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(0b10101010);                     // Row off bits
-  SPI.transfer(0b10101010);                     // Row off bits
-  SPI.transfer((hiRowVec & 0xff0000) >> 16);    // Byte 2
-  SPI.transfer((hiRowVec & 0xff000000) >> 24);  // Byte 3 (MSB)
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
   SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(150);
@@ -274,23 +308,33 @@ void setColumn(byte col, uint16_t rowbits) {
   colVec[colpos] &= ~colbits;
   shiftColVec();
 
+  // First bank: turn off odd pixels, leaving even pixels.
+  bits = (loRowVec | 0b10001000100010001000100010001000) & 0b10111011101110111011101110111011;
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(loRowVec & 0xff);                // Byte 0 (LSB)
-  SPI.transfer((loRowVec & 0xff00) >> 8);       // Byte 1
-  SPI.transfer(0b10101010);                     // Row off bits
-  SPI.transfer(0b10101010);                     // Row off bits
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
 	SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(150);
 
-  // Second bank of 8.  Leave column drive as-is.
+  // Second bank of 8: turn off even pixels, leaving odd pixels.
+  // Leave column drive as-is.
+  bits = (loRowVec | 0b00100010001000100010001000100010) & 0b11101110111011101110111011101110;
   digitalWrite(ROW_REG_CLK, LOW);
   SPI.beginTransaction(SPImode);
-  SPI.transfer(0b10101010);                     // Row off bits
-  SPI.transfer(0b10101010);                     // Row off bits
-  SPI.transfer((loRowVec & 0xff0000) >> 16);    // Byte 2
-  SPI.transfer((loRowVec & 0xff000000) >> 24);  // Byte 3 (MSB)
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
   SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK, HIGH);
   delayMicroseconds(150);
@@ -300,8 +344,12 @@ void setColumn(byte col, uint16_t rowbits) {
 }
 
 void setAllColumns(uint16_t rowbits) {
+  setAllColumns(rowbits, 0xffff);
+}
+
+void setAllColumns(uint16_t rowbits, uint16_t mask) {
   for (byte col=0;  col<colCount;  col++) {
-    setColumn(col, rowbits);
+    setColumn(col, rowbits, mask);
   }
 }
 
@@ -377,10 +425,17 @@ byte joystick() {
         if (Y > 80  &&  Y > X) {
           return UP;
         }
-
     }
 
     return NONE;
+}
+
+bool buttonZ() {
+  return (nunchuk_buttonZ() != 0);
+}
+
+bool buttonC() {
+  return (nunchuk_buttonC() != 0);
 }
 
 
@@ -498,7 +553,7 @@ bool hitFood() {
 byte awaitAction() {
   byte action = NONE;
 
-  while(action == NONE) {
+  while(action != UP && action != DOWN && action != LEFT && action != RIGHT) {
     action = joystick();
   }
 
@@ -578,6 +633,54 @@ byte limitRightAngles(byte action, byte prevAction) {
   return action;
 }
 
+void reverseSnake() {
+
+  delay(1500);
+
+  // Animate reversal
+  for (byte n=0;  n<snakelen;  n++) {
+    setPixel(snake[n], false);
+    delay(35);
+    setPixel(snake[n], true);
+    delay(35);
+  }
+
+  // Reverse snake
+  byte halflen = snakelen >> 1;
+  for (byte n=0; n<(halflen);  n++) {
+    coord temp = snake[n];
+    snake[n] = snake[snakelen-1-n];
+    snake[snakelen-1-n] = temp;
+  }
+
+  // Animate reversed snake
+  for (byte n=0;  n<snakelen;  n++) {
+    setPixel(snake[n], false);
+    delay(35);
+    setPixel(snake[n], true);
+    delay(35);
+  }
+  
+  // Determine forbidden direction
+  byte idleAction;
+
+  if (snake[snakelen-1].X - snake[snakelen-2].X > 0) {
+    idleAction = LEFT;
+  }
+  if (snake[snakelen-1].X - snake[snakelen-2].X < 0) {
+    idleAction = RIGHT;
+  }
+  if (snake[snakelen-1].Y - snake[snakelen-2].Y > 0) {
+    idleAction = UP;
+  }
+  if (snake[snakelen-1].Y - snake[snakelen-2].Y < 0) {
+    idleAction = DOWN;
+  }
+
+  while (awaitAction() == idleAction)
+    ;
+}
+
 // Play a single round, one or two players.
 void playHalfRound(byte player) {
 
@@ -592,7 +695,7 @@ void playHalfRound(byte player) {
   int foodCount = 0;
   int moveDelay = 250;
   
-  // Wait for non-LEFT action.
+  // Wait for non-forbidden action.
   byte idleAction = LEFT;
   if (player == 2)
     idleAction = RIGHT;
@@ -603,6 +706,13 @@ void playHalfRound(byte player) {
   bool longen = false;
 
   while (result > -1) {
+
+    // Snake reversal?
+    if (buttonC() && buttonZ()) {
+      reverseSnake();
+      halfAction = joystick();
+      prevAction = halfAction;
+    }
 
     // Handle food
     setFood(foodstate);
@@ -669,6 +779,7 @@ void playGame() {
     playHalfRound(1);
     setFood(false);
     scoreRound(1);
+    delay(5000);
     Serial.print("  Player 1 score: ");
     Serial.println(score1);
     
@@ -679,32 +790,99 @@ void playGame() {
       playHalfRound(2);
       setFood(false);
       scoreRound(2);
+      delay(5000);
       Serial.print("  Player 2 score: ");
       Serial.println(score2);
     }
   }
 }
 
+void displayDigit(byte d, byte row, byte col, uint16_t mask) {
+  uint16_t colbits = 0;
+
+  for (byte i=0;  i<4;  i++) {
+    colbits = digit_table[d][i] << row;
+    setColumn(col, colbits, mask);
+
+    col--;
+  }
+}
+
+void displayScore(int score, byte row, byte col, uint16_t mask) {
+
+  if (score == 0) {
+    displayDigit(0, row, col, mask);
+  }
+  while (score > 0 ) {
+    byte n = score % 10;
+    displayDigit(n, row, col, mask);
+
+    col -= 5;
+    score /= 10;
+  }
+}
+
+void showCurrentScoreSplit() {
+
+  invert = false;
+  setAllColumns(0xff00);
+  displayScore(score1, 0, 25, 0x00ff);
+  invert = true;
+  displayScore(score2, 9, 25, 0xff00);
+}
+
 void scoreRound(byte player) {
 
   for (byte n=0;  n<8;  n++) {
     setSnake(false);
-    delay(25);
+    delay(20);
     setSnake(true);
-    delay(25);
+    delay(20);
   }
   delay(1500);
 
   // Dissolve snake pixel by pixel
   for (byte n=0;  n<snakelen;  n++) {
     setPixel(snake[n], false);
-    delay(100);
+    delay(125);
+  }
 
-    if (player == 1) {
-      score1 += 25;
+  showCurrentScoreSplit();
+  delay(1500);
+  byte w = 50;
+  int points = snakelen * 25;
+  if (player == 1) {
+    invert = false;
+    int newscore = score1 + points;
+    while (score1 < newscore) {
+      if (w > 20)
+        score1++;
+      else {
+        score1 += 5;
+        if (score1 > newscore)
+          score1 = newscore;
+      }
+      displayScore(score1, 0, 25, 0x00ff);
+      delay(w);
+      if (w > 4)
+        w--;
     }
-    else {
-      score2 += 25;
+  }
+  else {
+    invert = true;
+    int newscore = score2 + points;
+    while (score2 < newscore) {
+      if (w > 20)
+        score2++;
+      else {
+        score2 += 5;
+        if (score2 > newscore)
+          score2 = newscore;
+      }
+      displayScore(score2, 9, 25, 0xff00);
+      delay(w);
+      if (w > 4)
+        w--;
     }
   }
 }
