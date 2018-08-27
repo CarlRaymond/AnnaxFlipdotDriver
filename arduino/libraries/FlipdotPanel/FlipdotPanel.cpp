@@ -304,13 +304,20 @@ void FlipdotPanel::senseColumns() {
   panelCount = (columnCount + 31) / 32;
 }
 
-
+// Set all pixels in a column at once, with default mask.
+void FlipdotPanel::setColumn(byte col, uint16_t rowbits) {
+  setColumn(col, rowbits, 0xffff, false);
+}
 
 // Set all pixels in a column at once.  LSB of rowbits is top row (0).
-void FlipdotPanel::setColumn(byte col, uint16_t rowbits) {
+// When mask bit is 1, show corresponding rowbit. When mask bit is 0,
+// do not change corresponding rowbit.
+void FlipdotPanel::setColumn(byte col, uint16_t rowbits, uint16_t maskbits, bool invert) {
 
-  // Skip the gaps
   col = virtualToPhysical(col);
+  if (invert) {
+    rowbits = ~rowbits;
+  }
 
   uint32_t hiRowVec = 0;
   uint32_t loRowVec = 0;
@@ -320,61 +327,134 @@ void FlipdotPanel::setColumn(byte col, uint16_t rowbits) {
   for (byte i=0;  i<16;  i++) {
     hiRowVec <<= 2;
     loRowVec <<= 2;
-    if ((rowbits & 0b1000000000000000) != 0) {
-      // row high
-      hiRowVec &= 0b11111111111111111111111111111100;
+    if ((rowbits & 0x8000) != 0) {
+      // 1 bit.
+      if ((maskbits & 0x8000) != 0) {
+        // Bit active. High side HIGH.
+        hiRowVec &= 0b11111111111111111111111111111100;    
+      }
+      else {
+        // Masked out. High side OFF.
+        hiRowVec |= 0b00000000000000000000000000000010;
+        hiRowVec &= 0b11111111111111111111111111111110;
+      }
 
+      // Low side OFF.
       loRowVec |= 0b00000000000000000000000000000010;
       loRowVec &= 0b11111111111111111111111111111110;
     }
     else {
-      // Row low.
+      // 0 bit. High side OFF.
       hiRowVec |= 0b00000000000000000000000000000010;
       hiRowVec &= 0b11111111111111111111111111111110;
 
-      loRowVec |= 0b00000000000000000000000000000011;
+      if ((maskbits & 0x8000) != 0) {
+        // Active. Low side LOW.
+        loRowVec |= 0b00000000000000000000000000000011;
+      }
+      else {
+        // Masked out. Low side OFF.
+        loRowVec |= 0b00000000000000000000000000000010;
+        loRowVec &= 0b11111111111111111111111111111110;
+      }
     }
     rowbits <<= 1;
+    maskbits <<= 1;
   }
-  // Set column low.
-  colVecOff();
+
+  // Locate column byte and bits
   byte colpos = col / 4;
   byte colshift = col % 4;
-  byte colbits = (0b00000011 << (colshift << 1));
-  colVec[colpos] |= colbits;
+  byte colbits = (0b11 << (colshift << 1));
 
-  // Turn on the ones.
+  // Turn on the ones: rows high, columns low.
+  // Send in odd/even banks of 8 dots (16 bits) to limit maximum current.
+  colVecOff();
+  colVec[colpos] |= colbits;
   shiftColVec();
+
+  // First bank of 8. Set odd numbered pixels OFF, leaving even
+  // pixels as-is.
+  uint32_t bits = (hiRowVec | 0b10001000100010001000100010001000) & 0b10111011101110111011101110111011;
   digitalWrite(ROW_REG_CLK_PIN, LOW);
   SPI.beginTransaction(SPImode);
-  for (byte n=0;  n<4;  n++) {
-    SPI.transfer(hiRowVec & 0xff);
-    hiRowVec >>= 8;
-  }
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3
+  SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK_PIN, HIGH);
+  delayMicroseconds(200);
 
-  delayMicroseconds(150);
-
+  // Second bank of 8.  Set even numbered pixels OFF, leaving
+  // odd pixels as-is. Leave column drive as-is.
+  bits = (hiRowVec | 0b00100010001000100010001000100010) & 0b11101110111011101110111011101110;
+  digitalWrite(ROW_REG_CLK_PIN, LOW);
+  SPI.beginTransaction(SPImode);
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
+  SPI.endTransaction();
+	digitalWrite(ROW_REG_CLK_PIN, HIGH);
+  delayMicroseconds(200);
+   
   allColsOff();
-  //allRowsOff();
 
-  // Turn off the zeroes.
+  // Turn off the zeroes: rows low, columns high.
+  // Send in banks of 8 dots (16 bits) to limit current.
   colVec[colpos] &= ~colbits;
   shiftColVec();
 
+  // First bank: turn off odd pixels, leaving even pixels.
+  bits = (loRowVec | 0b10001000100010001000100010001000) & 0b10111011101110111011101110111011;
   digitalWrite(ROW_REG_CLK_PIN, LOW);
   SPI.beginTransaction(SPImode);
-  for (byte n=0;  n<4;  n++) {
-    SPI.transfer(loRowVec & 0xff);
-    loRowVec >>= 8;
-  }
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
+	SPI.endTransaction();
 	digitalWrite(ROW_REG_CLK_PIN, HIGH);
+  delayMicroseconds(200);
 
-  delayMicroseconds(150);
+  // Second bank of 8: turn off even pixels, leaving odd pixels.
+  // Leave column drive as-is.
+  bits = (loRowVec | 0b00100010001000100010001000100010) & 0b11101110111011101110111011101110;
+  digitalWrite(ROW_REG_CLK_PIN, LOW);
+  SPI.beginTransaction(SPImode);
+  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 1
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 2
+  bits >>= 8;
+  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
+  SPI.endTransaction();
+	digitalWrite(ROW_REG_CLK_PIN, HIGH);
+  delayMicroseconds(200);
 
   allColsOff();
   allRowsOff();
-  
+}
+
+void FlipdotPanel::setAllColumns(uint16_t rowbits) {
+  setAllColumns(rowbits, 0xffff, false);
+}
+
+void FlipdotPanel::setAllColumns(uint16_t rowbits, uint16_t maskbits, bool invert) {
+  for (byte col=0;  col<columnCount;  col++) {
+    setColumn(col, rowbits, maskbits, invert);
+  }
 }
 
 

@@ -34,6 +34,9 @@ class FlipdotPanel {
 		void allColsLow();
 
 		void setColumn(byte col, uint16_t rowbits);
+		void setColumn(byte col, uint16_t rowbits, uint16_t maskbits, bool invert);
+		void setAllColumns(uint16_t rowbits);
+		void setAllColumns(uint16_t rowbits, uint16_t maskbits, bool invert);
 		void setPixel(byte row, byte col, bool on);
 
 	private:

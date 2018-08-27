@@ -13,6 +13,9 @@ void setup() {
 
 	Serial.print("No. of columns: ");
 	Serial.println(flipdots.columnCount);
+
+	flipdots.setAllColumns(0x0000);
+	delay(2000);
 }
 
 void loop() {
