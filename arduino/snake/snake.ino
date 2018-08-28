@@ -1,27 +1,10 @@
+#include <FlipdotPanel.h>
 #include <SPI.h>
 #include <Wire.h>
 #include "Nunchuk.h"
 #include "digits.h"
 
-#define COL_REG_CLK 4
-#define ROW_REG_CLK 5
-#define COL_EN 6
-#define ROW_EN 7
-#define SENSE_EN 8
-#define RC_CLEAR 9
-#define RC_DATA 11
-#define RC_SHIFT_CLK 13
-#define SENSE 12
-
-#define CTRL_A0 3
-#define CTRL_A1 14
-#define CTRL_A2 16
-#define CTRL_A3 18
-
-#define CTRL_B0 2
-#define CTRL_B1 15
-#define CTRL_B2 17
-#define CTRL_B3 19
+FlipdotPanel flipdots;
 
 
 // Joystick actions
@@ -31,26 +14,9 @@
 #define RIGHT 3
 #define LEFT 4
 
-const byte rowCount = 16;
-const byte colCount = 30;
+byte rowCount = 16;
+byte colCount = 30;
 
-struct coord {
-    int8_t X;
-    int8_t Y;
-};
-
-SPISettings SPImode = SPISettings(1000000, LSBFIRST, SPI_MODE0);
-
-//
-// Bit pairs for various outputs:
-//
-// HL
-// 00: HIGH: high side on (pulled high), low side off
-// 01: XLOW: diode prevents pullup enabling high side, low side on
-// 10: OFF: high side off, low side off
-// 11: LOW: high side off, low side on
-
-byte colVec[8];
 
 // Scoring
 int score1 = 0;
@@ -80,14 +46,14 @@ byte foodlen = 0;
 void setFood(bool state) {
 
   for (byte n=0;  n<foodlen;  n++) {
-    setPixel(food[n], state);
+    flipdots.setPixel(food[n], state, invert);
   }
 }
 
 void setSnake(bool state) {
 
   for (byte n=0;  n<snakelen;  n++) {
-    setPixel(snake[n], state);
+    flipdots.setPixel(snake[n], state, invert);
   }
 }
 
@@ -127,283 +93,6 @@ void resetHalfRound(byte player) {
     moveCount = 0;
 }
 
-void setupPanel() {
-  pinMode(COL_REG_CLK, OUTPUT);
-  pinMode(ROW_REG_CLK, OUTPUT);
-  pinMode(COL_EN, OUTPUT);
-  pinMode(ROW_EN, OUTPUT);
-  pinMode(RC_CLEAR, OUTPUT);
-  pinMode(RC_DATA, OUTPUT);
-  pinMode(RC_SHIFT_CLK, OUTPUT);
-  pinMode(SENSE_EN, OUTPUT);
-
-  pinMode(CTRL_A0, INPUT);
-  pinMode(CTRL_A1, INPUT);
-  pinMode(CTRL_A2, INPUT);
-  pinMode(CTRL_A3, INPUT);
-  pinMode(CTRL_B0, INPUT);
-  pinMode(CTRL_B1, INPUT);
-  pinMode(CTRL_B2, INPUT);
-  pinMode(CTRL_B3, INPUT);
-  pinMode(SENSE, INPUT);
-
-  digitalWrite(SENSE_EN, LOW);
-
-  // Disable outputs -- turns on all high sides on, low sides off.
-  digitalWrite(ROW_EN, HIGH);
-  digitalWrite(COL_EN, HIGH);
-
-  // Clear shift register
-  digitalWrite(RC_CLEAR, LOW);
-  digitalWrite(RC_CLEAR, HIGH);
-
-  digitalWrite(ROW_EN, LOW);
-  digitalWrite(COL_EN, LOW);
-
-  // Write shift register to output
-  digitalWrite(ROW_REG_CLK, LOW);
-  digitalWrite(ROW_REG_CLK, HIGH);
-  digitalWrite(COL_REG_CLK, LOW);
-  digitalWrite(COL_REG_CLK, HIGH);
-
-}
-
-// Write 0b10 pairs (off) into colVec
-void colVecOff() {
-  for (byte c=0;  c<8;  c++) {
-    colVec[c] = 0b10101010;
-  }
-}
-
-void shiftColVec() {
-  digitalWrite(COL_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  for (byte i=0;  i<8;  i++) {
-    SPI.transfer(colVec[i]);
-  }
-  SPI.endTransaction();
- 	digitalWrite(COL_REG_CLK, HIGH);
-}
-
-// Turn off all drivers
-void allRowsOff() {
-  digitalWrite(ROW_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  digitalWrite(RC_SHIFT_CLK, LOW);
-  for (byte i=0;  i<4;  i++) {
-    SPI.transfer(0b10101010);
-  }
-  SPI.endTransaction();
-	digitalWrite(ROW_REG_CLK, HIGH);
-}
-
-void allColsOff() {
-  colVecOff();
-  shiftColVec();
-}
-
-void setColumn(byte col, uint16_t rowbits) {
-  setColumn(col, rowbits, 0xffff);
-}
-
-// Set all pixels in a column at once.  LSB of rowbits is top row (0).
-// When mask bit is 1, show corresponding rowbit. When mask bit is 0,
-// do not change corresponding rowbit.
-void setColumn(byte col, uint16_t rowbits, uint16_t mask) {
-
-  if (invert) {
-    rowbits = ~rowbits;
-  }
-
-  uint32_t hiRowVec = 0;
-  uint32_t loRowVec = 0;
-
-  // Build hiRowVec and loRowVec together.
-  // Encode and shift from MSB of rowbits into LSB of rowvecs.
-  for (byte i=0;  i<16;  i++) {
-    hiRowVec <<= 2;
-    loRowVec <<= 2;
-    if ((rowbits & 0x8000) != 0) {
-      // 1 bit.
-      if ((mask & 0x8000) != 0) {
-        // Bit active. High side HIGH.
-        hiRowVec &= 0b11111111111111111111111111111100;    
-      }
-      else {
-        // Masked out. High side OFF.
-        hiRowVec |= 0b00000000000000000000000000000010;
-        hiRowVec &= 0b11111111111111111111111111111110;
-      }
-
-      // Low side OFF.
-      loRowVec |= 0b00000000000000000000000000000010;
-      loRowVec &= 0b11111111111111111111111111111110;
-    }
-    else {
-      // 0 bit. High side OFF.
-      hiRowVec |= 0b00000000000000000000000000000010;
-      hiRowVec &= 0b11111111111111111111111111111110;
-
-      if ((mask & 0x8000) != 0) {
-        // Active. Low side LOW.
-        loRowVec |= 0b00000000000000000000000000000011;
-      }
-      else {
-        // Masked out. Low side OFF.
-        loRowVec |= 0b00000000000000000000000000000010;
-        loRowVec &= 0b11111111111111111111111111111110;
-      }
-    }
-    rowbits <<= 1;
-    mask <<= 1;
-  }
-
-  // Locate column byte and bits
-  byte colpos = col / 4;
-  byte colshift = col % 4;
-  byte colbits = (0b11 << (colshift << 1));
-
-  // Turn on the ones: rows high, columns low.
-  // Send in odd/even banks of 8 dots (16 bits) to limit maximum current.
-  colVecOff();
-  colVec[colpos] |= colbits;
-  shiftColVec();
-
-  // First bank of 8. Set odd numbered pixels OFF, leaving even
-  // pixels as-is.
-  uint32_t bits = (hiRowVec | 0b10001000100010001000100010001000) & 0b10111011101110111011101110111011;
-  digitalWrite(ROW_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 1
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 2
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 3
-  SPI.endTransaction();
-	digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(150);
-
-  // Second bank of 8.  Set even numbered pixels OFF, leaving
-  // odd pixels as-is. Leave column drive as-is.
-  bits = (hiRowVec | 0b00100010001000100010001000100010) & 0b11101110111011101110111011101110;
-  digitalWrite(ROW_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 1
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 2
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
-  SPI.endTransaction();
-	digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(150);
-   
-  allColsOff();
-
-  // Turn off the zeroes: rows low, columns high.
-  // Send in banks of 8 dots (16 bits) to limit current.
-  colVec[colpos] &= ~colbits;
-  shiftColVec();
-
-  // First bank: turn off odd pixels, leaving even pixels.
-  bits = (loRowVec | 0b10001000100010001000100010001000) & 0b10111011101110111011101110111011;
-  digitalWrite(ROW_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 1
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 2
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
-	SPI.endTransaction();
-	digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(150);
-
-  // Second bank of 8: turn off even pixels, leaving odd pixels.
-  // Leave column drive as-is.
-  bits = (loRowVec | 0b00100010001000100010001000100010) & 0b11101110111011101110111011101110;
-  digitalWrite(ROW_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  SPI.transfer(bits & 0xff); // Byte 0 (LSB)
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 1
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 2
-  bits >>= 8;
-  SPI.transfer(bits & 0xff); // Byte 3 (MSB)
-  SPI.endTransaction();
-	digitalWrite(ROW_REG_CLK, HIGH);
-  delayMicroseconds(150);
-
-  allColsOff();
-  allRowsOff();
-}
-
-void setAllColumns(uint16_t rowbits) {
-  setAllColumns(rowbits, 0xffff);
-}
-
-void setAllColumns(uint16_t rowbits, uint16_t mask) {
-  for (byte col=0;  col<colCount;  col++) {
-    setColumn(col, rowbits, mask);
-  }
-}
-
-
-void setPixel(uint8_t row, uint8_t col, bool on) {
-  byte rowvec[4];
-
-  if (invert) {
-    on = !on;
-  }
-
-  for (int i=0; i<4; i++) {
-    rowvec[i] = 0b10101010;
-  }
-  byte rowpos = row / 4;
-  byte rowshift = row % 4;
-  byte rowbits = (0b00000011 << (rowshift << 1));
-
-  colVecOff();
-
-  byte colpos = col / 4;
-  byte colshift = col % 4;
-  byte colbits = (0b00000011 << (colshift << 1));
-
-  if (on) {
-    // Row high, col low
-    rowvec[rowpos] &= ~rowbits ;
-    colVec[colpos] |= colbits;
-  }
-  else {
-    // Row low, col high
-    rowvec[rowpos] |= rowbits;
-    colVec[colpos] &= ~colbits;
-  }
-
-  shiftColVec();
-
-  digitalWrite(ROW_REG_CLK, LOW);
-  SPI.beginTransaction(SPImode);
-  for (byte n=0;  n<4;  n++) {
-    SPI.transfer(rowvec[n]);
-  }
-	digitalWrite(ROW_REG_CLK, HIGH);
-
-  delayMicroseconds(200);
-
-  allColsOff();
-  allRowsOff();
-}
-
-
-void setPixel(coord c, bool state) {
-  setPixel(c.Y, c.X, state);
-}
 
 
 byte joystick() {
@@ -442,18 +131,18 @@ bool buttonC() {
 void clearPanel() {
   
   for (byte n=0;  n<4;  n++) {
-  setAllColumns(0b1010101010101010);
-  delay(100);
-  setAllColumns(0b0101010101010101);
-  delay(100);
+    flipdots.setAllColumns(0b1010101010101010, 0xffff, invert);
+    delay(100);
+    flipdots.setAllColumns(0b0101010101010101, 0xffff, invert);
+    delay(100);
   }
   
-  setAllColumns(0);
+  flipdots.setAllColumns(0x0000, 0xffff, invert);
 }
 
 void showSnake() {
   for (byte n=0;  n<snakelen;  n++) {
-    setPixel(snake[n], true);
+    flipdots.setPixel(snake[n], true, invert);
   }
 }
 
@@ -471,7 +160,7 @@ int8_t moveSnake(byte direction, bool enlongen) {
 
   if (!enlongen) {
     // Turn off tail end
-    setPixel(snake[0], false);
+    flipdots.setPixel(snake[0], false, invert);
 
     // Shift snake
     for (byte n=1;  n<snakelen;  n++) {
@@ -506,7 +195,7 @@ int8_t moveSnake(byte direction, bool enlongen) {
   }
 
   snake[snakelen-1] = head;
-  setPixel(head, true);
+  flipdots.setPixel(head, true, invert);
 
   if (hitSelf()) {
     // Game over.
@@ -639,9 +328,9 @@ void reverseSnake() {
 
   // Animate reversal
   for (byte n=0;  n<snakelen;  n++) {
-    setPixel(snake[n], false);
+    flipdots.setPixel(snake[n], false, invert);
     delay(35);
-    setPixel(snake[n], true);
+    flipdots.setPixel(snake[n], true, invert);
     delay(35);
   }
 
@@ -655,9 +344,9 @@ void reverseSnake() {
 
   // Animate reversed snake
   for (byte n=0;  n<snakelen;  n++) {
-    setPixel(snake[n], false);
+    flipdots.setPixel(snake[n], false, invert);
     delay(35);
-    setPixel(snake[n], true);
+    flipdots.setPixel(snake[n], true, invert);
     delay(35);
   }
   
@@ -802,7 +491,7 @@ void displayDigit(byte d, byte row, byte col, uint16_t mask) {
 
   for (byte i=0;  i<4;  i++) {
     colbits = digit_table[d][i] << row;
-    setColumn(col, colbits, mask);
+    flipdots.setColumn(col, colbits, mask, invert);
 
     col--;
   }
@@ -825,7 +514,7 @@ void displayScore(int score, byte row, byte col, uint16_t mask) {
 void showCurrentScoreSplit() {
 
   invert = false;
-  setAllColumns(0xff00);
+  flipdots.setAllColumns(0xff00);
   displayScore(score1, 0, 25, 0x00ff);
   invert = true;
   displayScore(score2, 9, 25, 0xff00);
@@ -843,7 +532,7 @@ void scoreRound(byte player) {
 
   // Dissolve snake pixel by pixel
   for (byte n=0;  n<snakelen;  n++) {
-    setPixel(snake[n], false);
+    flipdots.setPixel(snake[n], false, invert);
     delay(125);
   }
 
@@ -906,9 +595,19 @@ void showScores() {
 }
 
 void setup() {
-  SPI.begin();
-  setupPanel();
-  Serial.begin(115200);
+
+	Serial.begin(115200);
+	flipdots.begin();
+	SPI.begin();
+
+	Serial.print("No. of panels: ");
+	Serial.println(flipdots.panelCount);
+
+	Serial.print("No. of columns: ");
+	Serial.println(flipdots.columnCount);
+
+	flipdots.setAllColumns(0x0000);
+
   Wire.begin();
   nunchuk_init_power(); // A1 and A2 is power supply
   nunchuk_init();

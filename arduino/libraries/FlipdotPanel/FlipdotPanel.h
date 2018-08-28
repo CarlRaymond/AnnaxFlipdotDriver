@@ -1,5 +1,10 @@
 #include <Arduino.h>
 
+struct coord {
+    int8_t X;
+    int8_t Y;
+};
+
 class FlipdotPanel {
 
 	public:
@@ -38,7 +43,9 @@ class FlipdotPanel {
 		void setAllColumns(uint16_t rowbits);
 		void setAllColumns(uint16_t rowbits, uint16_t maskbits, bool invert);
 		void setPixel(byte row, byte col, bool on);
-
+		void setPixel(byte row, byte col, bool on, bool invert);
+		void setPixel(coord pixel, bool on);
+		void setPixel(coord pixel, bool on, bool invert);
 	private:
 
 		// Gaps and adjustments

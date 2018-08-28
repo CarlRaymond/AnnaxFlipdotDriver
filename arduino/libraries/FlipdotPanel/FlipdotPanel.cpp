@@ -457,6 +457,18 @@ void FlipdotPanel::setAllColumns(uint16_t rowbits, uint16_t maskbits, bool inver
   }
 }
 
+void FlipdotPanel::setPixel(coord pixel, bool on, bool invert) {
+  setPixel(pixel.Y, pixel.X, on ^ invert);
+}
+
+void FlipdotPanel::setPixel(coord pixel, bool on) {
+  setPixel(pixel.Y, pixel.X, on);
+}
+
+
+void FlipdotPanel::setPixel(byte row, byte col, bool on, bool invert) {
+  setPixel(row, col, on ^ invert);
+}
 
 void FlipdotPanel::setPixel(byte row, byte col, bool on) {
   byte rowvec[4];
