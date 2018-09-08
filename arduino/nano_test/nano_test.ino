@@ -548,7 +548,15 @@ void setup() {
   senseColumns();
   SPI.begin();
 
-  testGapper();
+  Serial.print("Sensed columns: ");
+  Serial.println(colCount);
+
+  // When not plugged in, no columns will be found. Assume 30 so that
+  // the board can be probed on the bench when not attached to a panel.
+  if (colCount == 0) {
+    colCount = 30;
+  }
+
 }
 
 void loop() {

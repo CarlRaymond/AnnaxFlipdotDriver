@@ -1,6 +1,6 @@
 # Annax Flipdot Driver #
 
-This is a driver for Annax flipdot display panels, with an ESP8266 (Wemos D1 Mini) controller.
+This is a driver for Annax flipdot display panels, with an Arduino nano or ESP8266 (Wemos D1 Mini) controller.
 
 The controller consists of a row driver PC board, which contains the microcontroller,
 and a column driver PC board. A span of panels can be any length. One row driver daisy
@@ -16,7 +16,12 @@ supporting interactive applications.
 The WeMos D1 Mini is an ESP8266 device, with built-in WiFi capability. This allows using
 the panel for signage, with remote configuration capability.
 
+## Row Board ##
+[Row board schematic](kicad/row_board/pdf/row_driver_schematic.pdf)
 ![Image of row board](kicad/images/row_driver.png)
+
+## Column Board ##
+[Column board schematic](kicad/column_board/pdf/column_driver_schematic.pdf)
 ![Image of column board](kicad/images/column_driver.png)
 
 

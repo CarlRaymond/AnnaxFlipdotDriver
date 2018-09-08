@@ -77,13 +77,13 @@ void resetHalfRound(byte player) {
       snake[3].Y = 8;
     }
     else {
-      snake[0].X = 24;
+      snake[0].X = colCount - 6;
       snake[0].Y = 8;
-      snake[1].X = 23;
+      snake[1].X = colCount - 7;
       snake[1].Y = 8;
-      snake[2].X = 22;
+      snake[2].X = colCount - 8;
       snake[2].Y = 8;
-      snake[3].X = 21;
+      snake[3].X = colCount - 9;
       snake[3].Y = 8;
     }
     foodlen = 0;
@@ -605,6 +605,8 @@ void setup() {
 
 	Serial.print("No. of columns: ");
 	Serial.println(flipdots.columnCount);
+
+  colCount = flipdots.columnCount;
 
 	flipdots.setAllColumns(0x0000);
 
